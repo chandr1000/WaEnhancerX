@@ -321,6 +321,15 @@ public final class PreferenceSchema {
         add(entries, "rootop_enabled_update_copy", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "rootop_enabled_update_install", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "rootop_enabled_update_cleanup", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_hma_probe_zygisk", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_hma_probe_lsposed_db", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_hma_discover_packages", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_hma_discover_find_configs", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_hma_read_config", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_hma_backup_config", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_hma_write_config", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_hma_restore_config", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_hma_force_stop", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "root_audit_log_enabled", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "root_consent_reviewed", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "secondstotime", Type.STRING, Sensitivity.PUBLIC_SETTING, Store.PUBLIC);

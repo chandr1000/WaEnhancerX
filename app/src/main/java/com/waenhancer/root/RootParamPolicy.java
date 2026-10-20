@@ -40,6 +40,12 @@ public final class RootParamPolicy {
     /** {@code pm install} success line: starts with "Success" (case-insensitive). */
     public static final Pattern PM_INSTALL_SUCCESS = Pattern.compile("(?is)^Success.*");
 
+    /** Sentinel written by the HMA backup step on success. */
+    public static final Pattern HMA_BACKUP_OK = Pattern.compile("(?s).*\\bWAEX_HMA_BACKUP_OK\\b.*");
+
+    /** Sentinel written by the HMA write step on success. */
+    public static final Pattern HMA_WRITE_OK = Pattern.compile("(?s).*\\bWAEX_HMA_WRITE_OK\\b.*");
+
     private RootParamPolicy() {}
 
     public static boolean isValidPackageName(String value) {
