@@ -7,13 +7,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Bounded root execution kernel. Ported 1:1 from {@code RootCommandRunner}: poll-based
- * wait (minSdk 24 has no reliably-linked {@code waitFor(timeout)}), always-draining
- * reader thread, 8 KiB capture cap, {@code destroy()} + reflective {@code destroyForcibly()},
- * fail-closed {@code null} contract.
+ * Bounded root execution kernel. Ported 1:1 from the original `RootCommandRunner`:
+ * poll-based wait (minSdk 24 has no reliably-linked `waitFor(timeout)`), always-draining
+ * reader thread, 8 KiB capture cap, `destroy()` + reflective `destroyForcibly()`,
+ * fail-closed `null` contract.
  *
- * <p>The package-private {@link Starter} overload preserves the QA harness testability
- * seam exercised by {@code qa/TestRootCommandRunner.java}.</p>
+ * <p>The `Starter` seam is `public` (rather than package-private
+ * so the deprecated `RootCommandRunner` shim could delegate
+ * cross-package during the Phase 1-4 migration window. With the shim deleted
+ * in Phase 5, the seam is kept public so the JDK-only QA harness
+ * (`qa/TestRootEngine.java`) can drive real unprivileged `sh -c` subprocesses
+ * against the production kernel without a real device or `su` grant.</p>
  */
 public final class RootEngine {
 
@@ -35,7 +39,27 @@ public final class RootEngine {
     }
 
     public static String exec(String command, long timeoutMillis, Starter starter) {
-        if (command == null || command.trim().isEmpty() || timeoutMillis <= 0 || starter == null) return null;
+        Result r = execResult(command, timeoutMillis, starter);
+        return r.ok ? r.output : null;
+    }
+
+    /** Tri-state result so the runner can distinguish timeout from nonzero-exit. */
+    public static final class Result {
+        public final boolean ok;
+        public final boolean timedOut;
+        public final String output;
+        private Result(boolean ok, boolean timedOut, String output) {
+            this.ok = ok; this.timedOut = timedOut; this.output = output;
+        }
+        static final Result TIMEOUT = new Result(false, true, null);
+        static final Result NONZERO = new Result(false, false, null);
+        static Result success(String output) { return new Result(true, false, output); }
+    }
+
+    public static Result execResult(String command, long timeoutMillis, Starter starter) {
+        if (command == null || command.trim().isEmpty() || timeoutMillis <= 0 || starter == null) {
+            return Result.NONZERO;
+        }
         Process process = null;
         Thread drain = null;
         StringBuilder output = new StringBuilder(MAX_CAPTURE_CHARS);
@@ -80,16 +104,16 @@ public final class RootEngine {
             }
             if (!completed) {
                 terminate(process);
-                return null;
+                return Result.TIMEOUT;
             }
             if (drain.isAlive()) drain.join(250L);
-            if (process.exitValue() != 0) return null;
-            synchronized (output) { return output.toString().trim(); }
+            if (process.exitValue() != 0) return Result.NONZERO;
+            synchronized (output) { return Result.success(output.toString().trim()); }
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
-            return null;
+            return Result.NONZERO;
         } catch (IOException | RuntimeException failure) {
-            return null;
+            return Result.NONZERO;
         } finally {
             if (process != null) terminate(process);
             if (drain != null && drain.isAlive()) drain.interrupt();

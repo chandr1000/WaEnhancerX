@@ -1,9 +1,9 @@
 package com.waenhancer.root
 
 /**
- * The single public door to {@code su}. Every call site passes a literal command id
- * present in {@link RootCommandRegistry}; the enforcement scanner
- * ({@code qa/test_root_registry_enforcement.py}) makes this structural.
+ * The single public door to `su`. Every call site passes a literal command id
+ * present in [RootCommandRegistry]; the enforcement scanner
+ * (`qa/test_root_registry_enforcement.py`) makes this structural.
  *
  * Gate sequence: registry lookup -> RootGate.isEnabled ->
  * RootParamPolicy.validate -> spec.template (defensive quoting inside) ->
@@ -37,32 +37,31 @@ object RegisteredRootRunner {
         val line = try {
             spec.template(validated)
         } catch (failure: RuntimeException) {
-            RootAuditLog.record(spec.id, params, RootResult.Blocked(BlockedReason.INVALID_PARAMETER), null, 0L, callerTag)
+            RootAuditLog.record(spec.id, validated, RootResult.Blocked(BlockedReason.INVALID_PARAMETER), null, 0L, callerTag)
             return RootResult.Blocked(BlockedReason.INVALID_PARAMETER)
         }
         val started = System.nanoTime()
-        val raw = try {
-            RootEngine.exec(line, spec.timeoutMs)
+        val execResult = try {
+            RootEngine.execResult(line, spec.timeoutMs)
         } catch (failure: RuntimeException) {
             val elapsed = (System.nanoTime() - started) / 1_000_000L
-            RootAuditLog.record(spec.id, params, RootResult.Failed(FailureKind.SPAWN_ERROR), null, elapsed, callerTag)
+            RootAuditLog.record(spec.id, validated, RootResult.Failed(FailureKind.SPAWN_ERROR), null, elapsed, callerTag)
             return RootResult.Failed(FailureKind.SPAWN_ERROR)
         }
         val elapsed = (System.nanoTime() - started) / 1_000_000L
-        if (raw == null) {
-            // Distinguish timeout from nonzero-exit cheaply: the engine returns null for both,
-            // but the in-memory log stays honest by recording a generic Failed(NONZERO_EXIT).
-            // A future kernel that surfaces the distinction will swap this branch in.
-            RootAuditLog.record(spec.id, params, RootResult.Failed(FailureKind.NONZERO_EXIT), null, elapsed, callerTag)
-            return RootResult.Failed(FailureKind.NONZERO_EXIT)
+        if (!execResult.ok) {
+            val kind = if (execResult.timedOut) FailureKind.TIMEOUT else FailureKind.NONZERO_EXIT
+            RootAuditLog.record(spec.id, validated, RootResult.Failed(kind), null, elapsed, callerTag)
+            return RootResult.Failed(kind)
         }
+        val raw = execResult.output
         val ok = checkOutput(spec, raw)
         if (!ok) {
-            RootAuditLog.record(spec.id, params, RootResult.Blocked(BlockedReason.OUTPUT_POLICY_FAILED), raw, elapsed, callerTag)
+            RootAuditLog.record(spec.id, validated, RootResult.Blocked(BlockedReason.OUTPUT_POLICY_FAILED), raw, elapsed, callerTag)
             return RootResult.Blocked(BlockedReason.OUTPUT_POLICY_FAILED)
         }
         val result: RootResult = if (raw.isEmpty()) RootResult.Success else RootResult.Completed(raw)
-        RootAuditLog.record(spec.id, params, result, raw, elapsed, callerTag)
+        RootAuditLog.record(spec.id, validated, result, raw, elapsed, callerTag)
         return result
     }
 
@@ -71,8 +70,6 @@ object RegisteredRootRunner {
         for (param in spec.params) {
             if (param.kind == ParamKind.CONSTANT) continue
             if (param.repeated) {
-                // Repeated params arrive as a single concatenated key; the param.extra["separator"]
-                // describes how the caller already joined them (validated upstream by the flow).
                 val raw = params[param.name]
                 if (param.required && raw.isNullOrBlank()) {
                     throw IllegalArgumentException("missing repeated param: ${param.name}")
@@ -89,10 +86,6 @@ object RegisteredRootRunner {
                 ParamKind.PACKAGE_NAME -> {
                     if (!RootParamPolicy.isValidPackageName(raw)) {
                         throw IllegalArgumentException("invalid PACKAGE_NAME: ${param.name}")
-                    }
-                    @Suppress("UNUSED_EXPRESSION") param.extra["allowlist"]?.let {
-                        // Flow-specific allowlist check stays at the caller (e.g. RestartTargetPolicy);
-                        // the registry re-validates the regex as the second layer.
                     }
                 }
                 ParamKind.PATH_STRICT -> {
