@@ -101,10 +101,17 @@ public final class TestRootParamPolicy {
                 "getenforce template");
         Map<String, String> pidofParams = new HashMap<>();
         pidofParams.put("packages", "com.whatsapp\ncom.whatsapp.w4b");
-        pidofParams.put("script", "command -v pidof >/dev/null 2>&1 || exit 127\npids=...");
         String pidofTemplate = RootCommandRegistryMirror.templateFor("diag.process.pidof", pidofParams);
         check(pidofTemplate.endsWith("\nprintf 'END|WAEX_PROCESS_SNAPSHOT\\n'"),
                 "pidof template appends sentinel");
+        check(pidofTemplate.contains("pidof com.whatsapp"), "pidof template includes first package");
+        check(pidofTemplate.contains("pidof com.whatsapp.w4b"), "pidof template includes second package");
+        check(!pidofTemplate.contains("; rm -rf"), "pidof template rejects shell injection via packages");
+
+        // Verify a malicious package name is rejected by the PACKAGE_NAME validator
+        // (the template would otherwise interpolate it verbatim).
+        check(!RootParamPolicy.isValidPackageName("com.evil; rm -rf /"),
+                "PACKAGE_NAME rejects shell injection");
 
         // --- Output-policy matrix ---
         check(RootCommandRegistryMirror.outputPolicyCheck("root.probe.id", "uid=0(root)"), "probe policy pass");

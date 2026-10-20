@@ -52,15 +52,10 @@ object XposedRuntimeInspector {
         }
         if (packages.isEmpty()) return XposedRuntimeSnapshot(emptyMap()).also { cachedSnapshot = it }
         val startedAtElapsed = SystemClock.elapsedRealtime()
-        val script = "command -v pidof >/dev/null 2>&1 || exit 127\n" + packages.joinToString("\n") { pkg ->
-            "pids=\$(pidof $pkg 2>/dev/null); rc=\$?; " +
-                "case \"\$rc\" in 0) [ -n \"\$pids\" ] || exit 2;; " +
-                "1) [ -z \"\$pids\" ] || exit 2;; *) exit 2;; esac; " +
-                "printf 'PID|$pkg|%s\\n' \"\$pids\""
-        }
+        // The registry constructs the pidof script itself from the validated
+        // PACKAGE_NAME list — the caller passes only the newline-joined package names.
         val params = mapOf(
-            "packages" to packages.joinToString("\n"),
-            "script" to script
+            "packages" to packages.joinToString("\n")
         )
         val output: String? = try {
             when (val result = RegisteredRootRunner.run("diag.process.pidof", params, "diagnostics")) {

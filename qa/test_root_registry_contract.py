@@ -49,9 +49,19 @@ public final class RootCommandRegistryMirror {
             case "diag.selinux.getenforce":
                 return "getenforce";
             case "diag.process.pidof":
-                String body = params.getOrDefault("script", "");
-                if (body.isEmpty()) return "printf 'END|WAEX_PROCESS_SNAPSHOT\\n'";
-                return body + "\nprintf 'END|WAEX_PROCESS_SNAPSHOT\\n'";
+                String pkgs = params.getOrDefault("packages", "");
+                if (pkgs.isEmpty()) return "printf 'END|WAEX_PROCESS_SNAPSHOT\\n'";
+                String[] pkgArr = pkgs.split("\n");
+                StringBuilder sb = new StringBuilder("command -v pidof >/dev/null 2>&1 || exit 127\n");
+                for (String pkg : pkgArr) {
+                    if (pkg.isEmpty()) continue;
+                    sb.append("pids=$(pidof ").append(pkg).append(" 2>/dev/null); rc=$?; ")
+                      .append("case \"$rc\" in 0) [ -n \"$pids\" ] || exit 2;; ")
+                      .append("1) [ -z \"$pids\" ] || exit 2;; *) exit 2;; esac; ")
+                      .append("printf 'PID|").append(pkg).append("|%s\\n' \"$pids\"\n");
+                }
+                sb.append("printf 'END|WAEX_PROCESS_SNAPSHOT\\n'");
+                return sb.toString();
             case "update.mktemp":
                 return "mktemp /data/local/tmp/waex.XXXXXX";
             case "update.copy":

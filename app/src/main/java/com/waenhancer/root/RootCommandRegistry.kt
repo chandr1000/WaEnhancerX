@@ -78,21 +78,25 @@ object RootCommandRegistry {
                         name = "packages",
                         kind = ParamKind.PACKAGE_NAME,
                         repeated = true
-                    ),
-                    ParamSpec(
-                        name = "script",
-                        kind = ParamKind.DERIVED_OUTPUT,
-                        required = false
                     )
                 ),
                 template = { p ->
-                    // The caller assembles the multi-line pidof script (one pidof line
-                    // per package) and passes it in the "script" param. The registry
-                    // appends the sentinel so the output policy can authenticate the
-                    // trailing line.
-                    val body = p["script"].orEmpty()
-                    if (body.isEmpty()) "printf 'END|WAEX_PROCESS_SNAPSHOT\\n'"
-                    else body + "\nprintf 'END|WAEX_PROCESS_SNAPSHOT\\n'"
+                    // The registry constructs the pidof script itself from the validated
+                    // PACKAGE_NAME list — no caller-supplied shell reaches RootEngine.
+                    // Each package gets one pidof line; the sentinel authenticates the output.
+                    val packages = p["packages"].orEmpty().split("\n").filter { it.isNotBlank() }
+                    if (packages.isEmpty()) {
+                        "printf 'END|WAEX_PROCESS_SNAPSHOT\\n'"
+                    } else {
+                        val pidofLines = packages.joinToString("\n") { pkg ->
+                            "pids=\$(pidof $pkg 2>/dev/null); rc=\$?; " +
+                                "case \"\$rc\" in 0) [ -n \"\$pids\" ] || exit 2;; " +
+                                "1) [ -z \"\$pids\" ] || exit 2;; *) exit 2;; esac; " +
+                                "printf 'PID|$pkg|%s\\n' \"\$pids\""
+                        }
+                        "command -v pidof >/dev/null 2>&1 || exit 127\n$pidofLines\n" +
+                            "printf 'END|WAEX_PROCESS_SNAPSHOT\\n'"
+                    }
                 },
                 outputPolicy = OutputPolicy.Sentinel("END|WAEX_PROCESS_SNAPSHOT"),
                 timeoutMs = 4_000L,
