@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.waenhancer.core.preferences.WaexPreferenceManager
 import com.waenhancer.licensing.LicenseManager
 import com.waenhancer.ui.designsystem.LocalThemeMode
@@ -32,6 +33,7 @@ import com.waenhancer.ui.navigation.MainContainerScreen
 import com.waenhancer.ui.navigation.WaexNavController
 import com.waenhancer.update.UpdateCheckCoordinator
 import com.waenhancer.update.UpdateDownloader
+import com.waenhancer.root.RootGate
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -65,6 +67,7 @@ class MainActivity : ComponentActivity() {
     private var rootState by mutableStateOf(RootAccessState.Checking)
     private var hasGrantedRootThisSession by mutableStateOf(false)
     private var initialRootResultProvided = false
+    private var consentReviewed by mutableStateOf(false)
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -145,9 +148,18 @@ class MainActivity : ComponentActivity() {
                             controller
                         }
 
-                        LaunchedEffect(rootCheckAttempt) {
+                        // Consent onboarding: show the capability review before the first
+                        // su probe. The probe is what triggers the actual
+                        // superuser grant prompt, so the user must see the contract first.
+                        val context = LocalContext.current
+                        LaunchedEffect(Unit) {
+                            consentReviewed = RootGate.isConsentReviewed(context)
+                        }
+
+                        LaunchedEffect(rootCheckAttempt, consentReviewed) {
+                            if (!consentReviewed) return@LaunchedEffect
                             if (initialRootResultProvided && rootCheckAttempt == 0) return@LaunchedEffect
-                            rootState = RootAccessState.Checking
+                            rootState = RootAccessState.AwaitingGrant
                             val hasRoot = withContext(Dispatchers.IO) {
                                 UpdateDownloader.hasRootAccess()
                             }
@@ -177,7 +189,11 @@ class MainActivity : ComponentActivity() {
                                     MainContainerScreen()
                                 }
                             }
-                            if (rootState != RootAccessState.Granted) {
+                            if (!consentReviewed) {
+                                RootConsentReviewScreen(
+                                    onContinue = { consentReviewed = true }
+                                )
+                            } else if (rootState != RootAccessState.Granted) {
                                 RootAccessRequirementScreen(
                                     state = rootState,
                                     onRetry = { rootCheckAttempt++ },
