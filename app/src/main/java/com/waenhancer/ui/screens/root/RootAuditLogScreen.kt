@@ -97,7 +97,7 @@ fun RootAuditLogScreen() {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(16.dp)
                 ) {
-                    items(entries.asReversed()) { entry ->
+                    items(entries.asReversed(), key = { "${it.epochMs}_${it.commandId}_${it.callerTag}" }) { entry ->
                         val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                             .format(Date(entry.epochMs))
                         Column(
@@ -134,15 +134,15 @@ fun RootAuditLogScreen() {
 
 @Composable
 private fun outcomeLabel(outcome: RootResult): String = when (outcome) {
-    is RootResult.Success -> "OK"
-    is RootResult.Completed -> stringResource(R.string.rootop_log_output_preview)
+    is RootResult.Success -> stringResource(R.string.rootop_log_outcome_success)
+    is RootResult.Completed -> stringResource(R.string.rootop_log_outcome_completed)
     is RootResult.Blocked -> when (outcome.reason) {
         BlockedReason.DISABLED_BY_USER -> stringResource(R.string.rootop_log_disabled_reason)
         else -> stringResource(R.string.rootop_log_blocked)
     }
     is RootResult.Failed -> when (outcome.kind) {
-        FailureKind.TIMEOUT -> "Timed out"
-        FailureKind.NONZERO_EXIT -> "Failed"
-        FailureKind.SPAWN_ERROR -> "Spawn error"
+        FailureKind.TIMEOUT -> stringResource(R.string.rootop_log_outcome_timeout)
+        FailureKind.NONZERO_EXIT -> stringResource(R.string.rootop_log_outcome_failed)
+        FailureKind.SPAWN_ERROR -> stringResource(R.string.rootop_log_outcome_spawn_error)
     }
 }

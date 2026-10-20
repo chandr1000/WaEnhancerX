@@ -29,10 +29,26 @@ import com.waenhancer.ui.navigation.LocalWaexNavController
 fun RootCommandDetailScreen(commandId: String) {
     val nav = LocalWaexNavController.current
     val spec = RootCommandRegistry.spec(commandId)
-    LaunchedEffect(spec) {
-        if (spec == null) nav.popBack()
+    if (spec == null) {
+        Scaffold(
+            topBar = {
+                WaexTopBar(
+                    title = commandId,
+                    onBackClick = { nav.popBack() }
+                )
+            }
+        ) { padding ->
+            com.waenhancer.ui.components.WaexEmptyState(
+                title = "This operation is no longer registered",
+                description = "The command \"$commandId\" is not in the current registry.",
+                icon = com.waenhancer.ui.designsystem.WaexIcons.Warning,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            )
+        }
+        return
     }
-    if (spec == null) return
     Scaffold(
         topBar = {
             WaexTopBar(
@@ -129,33 +145,35 @@ private fun DetailMetaRow(spec: RootCommandSpec) {
     )
 }
 
+@Composable
 private fun fallbackDescriptionFor(spec: RootCommandSpec): String {
-    if (!spec.toggleable) return "Required entry — cannot be turned off."
+    if (!spec.toggleable) return stringResource(R.string.rootop_detail_fallback_required)
     return when (spec.category) {
-        Category.RESTART -> "Root restart falls back to a signed broadcast; restart verification is weaker."
-        Category.UPDATE -> "Root install falls back to the session package installer."
-        Category.DIAGNOSTICS -> "Diagnostics mark this entry as unavailable; no fallback path runs."
-        Category.HMA_REPAIR -> "HMA repair step is skipped; the chain refuses to start if any step is disabled."
+        Category.RESTART -> stringResource(R.string.rootop_detail_fallback_restart)
+        Category.UPDATE -> stringResource(R.string.rootop_detail_fallback_update)
+        Category.DIAGNOSTICS -> stringResource(R.string.rootop_detail_fallback_diagnostics)
+        Category.HMA_REPAIR -> stringResource(R.string.rootop_detail_fallback_hma)
     }
 }
 
+@Composable
 private fun parameterRulesFor(spec: RootCommandSpec): String {
-    if (spec.params.isEmpty()) return "No parameters."
+    if (spec.params.isEmpty()) return stringResource(R.string.rootop_detail_no_params)
     return spec.params.joinToString("\n") { p ->
         val kindDesc = when (p.kind) {
             com.waenhancer.root.ParamKind.PACKAGE_NAME ->
-                "must match the package-name regex [A-Za-z_][A-Za-z0-9_.]+ and be in the declared scope"
+                stringResource(R.string.rootop_detail_param_package)
             com.waenhancer.root.ParamKind.PATH_STRICT ->
-                "must pass the strict-path check: a fixed /data/… path with no shell metacharacters"
+                stringResource(R.string.rootop_detail_param_path_strict)
             com.waenhancer.root.ParamKind.BASE64_TEXT ->
-                "must be Base64.NO_WRAP output (alphabet [A-Za-z0-9+/=], no whitespace)"
+                stringResource(R.string.rootop_detail_param_base64)
             com.waenhancer.root.ParamKind.FILE_PATH ->
-                "app-generated cacheDir-derived path; validated at the caller"
+                stringResource(R.string.rootop_detail_param_file_path)
             com.waenhancer.root.ParamKind.DERIVED_OUTPUT ->
-                "value extracted from a previous command's policy-passing output"
+                stringResource(R.string.rootop_detail_param_derived)
             com.waenhancer.root.ParamKind.CONSTANT -> "baked into the template, not caller-supplied"
         }
-        "${p.name} (${p.kind}): $kindDesc"
+        "${p.name}: $kindDesc"
     }
 }
 

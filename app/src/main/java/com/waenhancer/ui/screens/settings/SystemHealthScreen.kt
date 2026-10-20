@@ -270,7 +270,8 @@ private fun PrivilegedOperationsEntryCard(nav: com.waenhancer.ui.navigation.Waex
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                "$total registered · $disabled disabled by you",
+                UiText.get(R.string.rootop_entry_card_summary,
+                    "%1\$d registered · %2\$d disabled by you", total, disabled),
                 style = typography.bodyMd,
                 color = colors.onSurfaceVariant
             )

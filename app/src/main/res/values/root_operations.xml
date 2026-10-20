@@ -117,6 +117,23 @@
     <string name="rootop_log_blocked">Blocked</string>
     <string name="rootop_log_disabled_reason">Disabled by you</string>
     <string name="rootop_log_output_preview">Output preview</string>
+    <string name="rootop_log_outcome_success">OK</string>
+    <string name="rootop_log_outcome_completed">Completed</string>
+    <string name="rootop_log_outcome_timeout">Timed out</string>
+    <string name="rootop_log_outcome_failed">Failed</string>
+    <string name="rootop_log_outcome_spawn_error">Spawn error</string>
+    <string name="rootop_entry_card_summary">%1$d registered · %2$d disabled by you</string>
+    <string name="rootop_detail_fallback_required">Required entry — cannot be turned off.</string>
+    <string name="rootop_detail_fallback_restart">Root restart falls back to a signed broadcast; restart verification is weaker.</string>
+    <string name="rootop_detail_fallback_update">Root install falls back to the session package installer.</string>
+    <string name="rootop_detail_fallback_diagnostics">Diagnostics mark this entry as unavailable; no fallback path runs.</string>
+    <string name="rootop_detail_fallback_hma">HMA repair step is skipped; the chain refuses to start if any step is disabled.</string>
+    <string name="rootop_detail_no_params">No parameters.</string>
+    <string name="rootop_detail_param_package">must match the package-name regex and be in the declared scope</string>
+    <string name="rootop_detail_param_path_strict">must pass the strict-path check: a fixed /data/… path with no shell metacharacters</string>
+    <string name="rootop_detail_param_base64">must be Base64.NO_WRAP output (alphabet [A-Za-z0-9+/=], no whitespace)</string>
+    <string name="rootop_detail_param_file_path">app-generated cacheDir-derived path; validated at the caller</string>
+    <string name="rootop_detail_param_derived">value extracted from a previous command\'s policy-passing output</string>
     <string name="rootop_consent_title">Review what WAEX can do with root</string>
     <string name="rootop_consent_body">WAEX performs %1$d registered root operations. Review the list before continuing.</string>
     <string name="rootop_consent_continue">Continue — WAEX will now ask your root manager for access</string>

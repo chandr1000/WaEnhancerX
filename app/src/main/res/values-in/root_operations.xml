@@ -116,6 +116,23 @@
     <string name="rootop_log_blocked">Diblokir</string>
     <string name="rootop_log_disabled_reason">Dinonaktifkan oleh Anda</string>
     <string name="rootop_log_output_preview">Pratinjau keluaran</string>
+    <string name="rootop_log_outcome_success">OK</string>
+    <string name="rootop_log_outcome_completed">Selesai</string>
+    <string name="rootop_log_outcome_timeout">Waktu habis</string>
+    <string name="rootop_log_outcome_failed">Gagal</string>
+    <string name="rootop_log_outcome_spawn_error">Kesalahan spawn</string>
+    <string name="rootop_entry_card_summary">%1$d terdaftar · %2$d dinonaktifkan oleh Anda</string>
+    <string name="rootop_detail_fallback_required">Entri wajib — tidak dapat dimatikan.</string>
+    <string name="rootop_detail_fallback_restart">Mulai ulang lewat root memakai fallback siaran bertanda tangan; verifikasi restart lebih lemah.</string>
+    <string name="rootop_detail_fallback_update">Instalasi lewat root memakai penginstal sesi paket.</string>
+    <string name="rootop_detail_fallback_diagnostics">Diagnostik menandai entri ini tidak tersedia; tidak ada jalur fallback yang berjalan.</string>
+    <string name="rootop_detail_fallback_hma">Langkah perbaikan HMA dilewati; rantai menolak mulai jika ada langkah yang dinonaktifkan.</string>
+    <string name="rootop_detail_no_params">Tidak ada parameter.</string>
+    <string name="rootop_detail_param_package">harus cocok dengan regex nama paket dan berada dalam cakupan yang dideklarasikan</string>
+    <string name="rootop_detail_param_path_strict">harus lulus pemeriksaan jalur ketat: jalur /data/… tetap tanpa karakter meta shell</string>
+    <string name="rootop_detail_param_base64">harus berupa keluaran Base64.NO_WRAP (alfabet [A-Za-z0-9+/=], tanpa spasi)</string>
+    <string name="rootop_detail_param_file_path">jalur turunan cacheDir yang dibuat aplikasi; divalidasi di pemanggil</string>
+    <string name="rootop_detail_param_derived">nilai yang diekstrak dari keluaran perintah sebelumnya yang lulus kebijakan</string>
     <string name="rootop_consent_title">Tinjau apa yang dapat dilakukan WAEX dengan akses root</string>
     <string name="rootop_consent_body">WAEX menjalankan %1$d operasi root terdaftar. Tinjau daftarnya sebelum melanjutkan.</string>
     <string name="rootop_consent_continue">Lanjutkan — WAEX akan meminta akses root di pengelola root Anda</string>
