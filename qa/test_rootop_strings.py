@@ -40,6 +40,14 @@ def parse_keys(path: Path) -> list[tuple[str, str]]:
             continue
         text = string.text or ''
         entries.append((name, text))
+    # Also parse <plurals> elements — each has a name attribute and <item> children.
+    for plurals in root.findall('plurals'):
+        name = plurals.get('name')
+        if name is None:
+            continue
+        items = [item.text or '' for item in plurals.findall('item')]
+        # Join all quantity variants for format-arg checking.
+        entries.append((name, ' '.join(items)))
     return entries
 
 
@@ -93,7 +101,7 @@ def check_strings_referenced_from_code(en_keys: list[str]) -> list[str]:
         all_source.append(path.read_text(encoding='utf-8', errors='replace'))
     combined = '\n'.join(all_source)
     for key in en_keys:
-        if f'R.string.{key}' not in combined:
+        if f'R.string.{key}' not in combined and f'R.plurals.{key}' not in combined:
             failures.append(f'{key}: not referenced from any .kt/.java source file')
     return failures
 

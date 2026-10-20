@@ -131,7 +131,10 @@
     <string name="rootop_toast_step_blocked">Step \"%1$s\" was skipped: disabled by you</string>
     <string name="rootop_last_run_summary">Last run %1$s ago</string>
     <string name="rootop_never_run">Never run this session</string>
-    <string name="rootop_run_count">%1$d run%2$s this session</string>
+    <plurals name="rootop_run_count">
+        <item quantity="one">%1$d run this session</item>
+        <item quantity="other">%1$d runs this session</item>
+    </plurals>
 
     <!-- 19. debug.echo (debug-build-only, §6.5) -->
     <string name="rootop_debug_echo_title">Test echo</string>

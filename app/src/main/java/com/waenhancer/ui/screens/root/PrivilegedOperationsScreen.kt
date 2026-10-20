@@ -285,8 +285,7 @@ private fun lastRunSummaryFor(
         ageMs < 3_600_000 -> "${ageMs / 60_000}min"
         else -> "${ageMs / 3_600_000}h"
     }
-    val plural = if (count == 1) "" else "s"
-    val countText = stringResource(R.string.rootop_run_count, count, plural)
+    val countText = androidx.compose.ui.res.pluralStringResource(R.plurals.rootop_run_count, count, count)
     val lastText = stringResource(R.string.rootop_last_run_summary, ageText)
     return "$countText · $lastText"
 }
