@@ -102,6 +102,10 @@ class MainActivity : ComponentActivity() {
             hasGrantedRootThisSession = initialRootResult
             rootState = if (hasGrantedRootThisSession) RootAccessState.Granted else RootAccessState.Required
         }
+        // Read the consent-reviewed flag synchronously so the consent screen does
+        // not flash on every cold launch for users who already reviewed and granted.
+        // The read is a fast SharedPreferences getBoolean.
+        consentReviewed = RootGate.isConsentReviewed(this)
         enableEdgeToEdge()
         setContent {
             val initialTheme = remember { preferenceManager.getString("app_theme_mode", "System") }
@@ -148,14 +152,8 @@ class MainActivity : ComponentActivity() {
                             controller
                         }
 
-                        // Consent onboarding: show the capability review before the first
-                        // su probe. The probe is what triggers the actual
-                        // superuser grant prompt, so the user must see the contract first.
-                        val context = LocalContext.current
-                        LaunchedEffect(Unit) {
-                            consentReviewed = RootGate.isConsentReviewed(context)
-                        }
-
+                        // Consent onboarding: consentReviewed is seeded synchronously
+                        // in onCreate (no flash), and the su probe is gated on it.
                         LaunchedEffect(rootCheckAttempt, consentReviewed) {
                             if (!consentReviewed) return@LaunchedEffect
                             if (initialRootResultProvided && rootCheckAttempt == 0) return@LaunchedEffect
