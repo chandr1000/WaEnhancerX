@@ -323,6 +323,17 @@ object HmaDiagnostics {
      * when whitelist mode is enabled).
      */
     suspend fun fixTargetIsolation(context: Context, targetPackage: String): Boolean = withContext(Dispatchers.IO) {
+        // Pre-flight consent: if the user disabled any step in the backup→write→
+        // verify→restore chain, refuse to start.
+        val chain = listOf(
+            "hma.backup_config",
+            "hma.write_config",
+            "hma.read_config",
+            "hma.restore_config"
+        )
+        val preFlight = RootFlowConsent.preFlight(chain)
+        if (!preFlight.allowed) return@withContext false
+
         // Force-stop HMA and any related processes BEFORE reading/modifying configuration
         forceStopHmaApps(context)
 
@@ -412,6 +423,7 @@ object HmaDiagnostics {
                 }
 
                 // Keep a recoverable copy before replacing HMA's live configuration.
+                if (!RootFlowConsent.isStepEnabled("hma.backup_config")) continue
                 val backupResult = RegisteredRootRunner.run(
                     "hma.backup_config",
                     mapOf("path" to configPath),
@@ -423,6 +435,7 @@ object HmaDiagnostics {
                 if (!backupOk) continue
 
                 // Write modified JSON using a temporary file, preserving owner and SELinux context.
+                if (!RootFlowConsent.isStepEnabled("hma.write_config")) continue
                 val b64 = android.util.Base64.encodeToString(
                     root.toString().toByteArray(Charsets.UTF_8),
                     android.util.Base64.NO_WRAP
@@ -451,7 +464,7 @@ object HmaDiagnostics {
 
                 if (verified) {
                     anySuccess = true
-                } else {
+                } else if (RootFlowConsent.isStepEnabled("hma.restore_config")) {
                     // A failed/partial write must never strand the user with a broken HMA config.
                     RegisteredRootRunner.run(
                         "hma.restore_config",
