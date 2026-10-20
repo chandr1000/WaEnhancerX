@@ -377,9 +377,10 @@ object RootCommandRegistry {
                     val config = RootParamPolicy.shellQuote(p["path"])
                     val backup = RootParamPolicy.shellQuote(p["path"] + ".waex.bak")
                     "cp -p $backup $config 2>/dev/null && " +
-                        "restorecon $config 2>/dev/null; true"
+                        "(restorecon $config 2>/dev/null || true) && " +
+                        "echo WAEX_HMA_RESTORE_OK"
                 },
-                outputPolicy = OutputPolicy.EmptyOk,
+                outputPolicy = OutputPolicy.Regex(RootParamPolicy.HMA_RESTORE_OK.toRegex()),
                 timeoutMs = 4_000L,
                 toggleable = true,
                 titleRes = R.string.rootop_hma_restore_config_title,

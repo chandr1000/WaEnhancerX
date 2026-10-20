@@ -46,6 +46,9 @@ public final class RootParamPolicy {
     /** Sentinel written by the HMA write step on success. */
     public static final Pattern HMA_WRITE_OK = Pattern.compile("(?s).*\\bWAEX_HMA_WRITE_OK\\b.*");
 
+    /** Sentinel written by the HMA restore step on success. */
+    public static final Pattern HMA_RESTORE_OK = Pattern.compile("(?s).*\\bWAEX_HMA_RESTORE_OK\\b.*");
+
     /** Base64 (NO_WRAP) alphabet: letters, digits, +, /, and = padding. */
     public static final Pattern BASE64_TEXT = Pattern.compile("^[A-Za-z0-9+/]+={0,2}$");
 

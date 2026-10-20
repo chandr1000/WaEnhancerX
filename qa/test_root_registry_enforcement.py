@@ -79,7 +79,7 @@ GOLDEN_TEMPLATES = {
     'hma.read_config': "head -c 262144",
     'hma.backup_config': "WAEX_HMA_BACKUP_OK",
     'hma.write_config': "WAEX_HMA_WRITE_OK",
-    'hma.restore_config': "restorecon",
+    'hma.restore_config': "WAEX_HMA_RESTORE_OK",
     'hma.force_stop': "am force-stop '",
 }
 
