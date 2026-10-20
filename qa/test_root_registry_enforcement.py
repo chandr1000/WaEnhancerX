@@ -45,6 +45,15 @@ ALLOWED_COMMAND_IDS = {
     'update.copy',
     'update.install',
     'update.cleanup',
+    'hma.probe.zygisk',
+    'hma.probe.lsposed_db',
+    'hma.discover.packages',
+    'hma.discover.find_configs',
+    'hma.read_config',
+    'hma.backup_config',
+    'hma.write_config',
+    'hma.restore_config',
+    'hma.force_stop',
 }
 
 GOLDEN_TEMPLATES = {
@@ -57,6 +66,15 @@ GOLDEN_TEMPLATES = {
     'update.copy': "wc -c <",
     'update.install': "pm install -r -d --user 0",
     'update.cleanup': "rm -f --",
+    'hma.probe.zygisk': "/data/adb/modules/hma_oss_zygisk",
+    'hma.probe.lsposed_db': "/data/adb/lspd/config/modules_config.db",
+    'hma.discover.packages': "pm list packages",
+    'hma.discover.find_configs': "-type f -xdev -maxdepth 8",
+    'hma.read_config': "head -c 262144",
+    'hma.backup_config': "WAEX_HMA_BACKUP_OK",
+    'hma.write_config': "WAEX_HMA_WRITE_OK",
+    'hma.restore_config': "restorecon",
+    'hma.force_stop': "am force-stop '",
 }
 
 PRIVATE_RUNTIME_KEYS = [
@@ -68,6 +86,15 @@ PRIVATE_RUNTIME_KEYS = [
     'rootop_enabled_update_copy',
     'rootop_enabled_update_install',
     'rootop_enabled_update_cleanup',
+    'rootop_enabled_hma_probe_zygisk',
+    'rootop_enabled_hma_probe_lsposed_db',
+    'rootop_enabled_hma_discover_packages',
+    'rootop_enabled_hma_discover_find_configs',
+    'rootop_enabled_hma_read_config',
+    'rootop_enabled_hma_backup_config',
+    'rootop_enabled_hma_write_config',
+    'rootop_enabled_hma_restore_config',
+    'rootop_enabled_hma_force_stop',
     'root_audit_log_enabled',
     'root_consent_reviewed',
 ]

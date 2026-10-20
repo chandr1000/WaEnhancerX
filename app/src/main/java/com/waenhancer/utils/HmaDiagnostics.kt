@@ -2,6 +2,10 @@ package com.waenhancer.utils
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import com.waenhancer.root.RegisteredRootRunner
+import com.waenhancer.root.RootParamPolicy
+import com.waenhancer.root.RootResult
+import com.waenhancer.root.RootFlowConsent
 import com.waenhancer.xposed.utils.AppRestartHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -170,16 +174,15 @@ object HmaDiagnostics {
 
     private fun isHmaInstalledAndActive(context: Context): Boolean {
         // 1. Zygisk module directory check
-        val zygiskCheck = AppRestartHelper.runRootCommand(
-            "[ -d $HMA_ZYGISK_PATH ] && [ ! -f $HMA_ZYGISK_PATH/disable ] && echo active; " +
-                    "ls -d /data/adb/modules/*hma* 2>/dev/null; true"
-        )
+        val zygiskResult = RegisteredRootRunner.run("hma.probe.zygisk", callerTag = "hma")
+        val zygiskCheck = (zygiskResult as? RootResult.Completed)?.output
         if (zygiskCheck?.contains("active") == true || zygiskCheck?.contains("hma") == true) {
             return true
         }
 
         // 2. LSPosed module database check
-        val dbCheck = AppRestartHelper.runRootCommand("[ -f $LSP_CONFIG_DB ] && echo exists")
+        val dbResult = RegisteredRootRunner.run("hma.probe.lsposed_db", callerTag = "hma")
+        val dbCheck = (dbResult as? RootResult.Completed)?.output
         if (dbCheck?.contains("exists") == true) {
             val cacheDir = context.cacheDir
             val cacheDb = File(cacheDir, "hma_lsposed_inspect.db")
@@ -229,7 +232,8 @@ object HmaDiagnostics {
         } catch (_: Exception) {}
 
         // Also query via root package manager in case package visibility is restricted
-        val pmOut = AppRestartHelper.runRootCommand("pm list packages")
+        val pmResult = RegisteredRootRunner.run("hma.discover.packages", callerTag = "hma")
+        val pmOut = (pmResult as? RootResult.Completed)?.output
         if (!pmOut.isNullOrBlank()) {
             pmOut.lines().forEach { raw ->
                 val line = raw.trim()
@@ -271,7 +275,9 @@ object HmaDiagnostics {
         val paths = findAllHmaConfigPaths()
         val configs = mutableListOf<Pair<String, JSONObject>>()
         for (path in paths) {
-            val out = AppRestartHelper.runRootCommand("cat $path 2>/dev/null")
+            // R1 fix: read through the registered hma.read_config entry — the path is
+            // PATH_STRICT-validated by the registry and shell-quoted in the template.
+            val out = readHmaConfig(path)
             if (!out.isNullOrBlank() && out.trimStart().startsWith("{")) {
                 try {
                     configs.add(path to JSONObject(out))
@@ -281,17 +287,28 @@ object HmaDiagnostics {
         return configs
     }
 
+    private fun readHmaConfig(path: String): String? {
+        val result = RegisteredRootRunner.run("hma.read_config", mapOf("path" to path), "hma")
+        return (result as? RootResult.Completed)?.output
+    }
+
     /**
      * Finds all valid HMA / HMAL configuration paths across system directories,
      * zygisk data directories, and app-internal private files.
+     *
+     * The find sweep uses the §3.8 hardening rider (-type f -xdev -maxdepth 8) via
+     * the registry; every returned path is re-validated against PATH_STRICT locally
+     * so a planted symlink or metacharacter-laden filename cannot reach the cat step.
+     * First 20 hits are kept (overflow is silently dropped; a future audit entry
+     * will count them when the find_configs spec gains PATH_LINES_STRICT output policy).
      */
     private fun findAllHmaConfigPaths(): List<String> {
-        val findCmd = "find /data/misc /data/system /data/adb /data/user/0 /data/data -name 'config.json' " +
-                "\\( -path '*hide_my_applist*' -o -path '*hma*' \\) 2>/dev/null; true"
-        val out = AppRestartHelper.runRootCommand(findCmd) ?: return emptyList()
+        val result = RegisteredRootRunner.run("hma.discover.find_configs", callerTag = "hma")
+        val out = (result as? RootResult.Completed)?.output ?: return emptyList()
         return out.lines()
             .map { it.trim() }
-            .filter { it.isNotBlank() && it.endsWith("config.json") }
+            .filter { it.isNotBlank() && RootParamPolicy.isValidPathStrict(it) }
+            .take(20)
             .distinct()
     }
 
@@ -317,7 +334,7 @@ object HmaDiagnostics {
         var anySuccess = false
 
         for (configPath in configPaths) {
-            val currentJsonStr = AppRestartHelper.runRootCommand("cat $configPath 2>/dev/null") ?: continue
+            val currentJsonStr = readHmaConfig(configPath) ?: continue
             if (!currentJsonStr.trimStart().startsWith("{")) continue
 
             try {
@@ -391,38 +408,31 @@ object HmaDiagnostics {
                 }
 
                 // Keep a recoverable copy before replacing HMA's live configuration.
-                val quotedConfig = shellQuote(configPath)
-                val backupConfig = "$configPath.waex.bak"
-                val quotedBackup = shellQuote(backupConfig)
-                val backupResult = AppRestartHelper.runRootCommand(
-                    "cp -p $quotedConfig $quotedBackup 2>/dev/null && " +
-                            "(restorecon $quotedBackup 2>/dev/null || true) && " +
-                            "echo WAEX_HMA_BACKUP_OK"
+                val backupResult = RegisteredRootRunner.run(
+                    "hma.backup_config",
+                    mapOf("path" to configPath),
+                    "hma"
                 )
-                if (backupResult?.contains("WAEX_HMA_BACKUP_OK") != true) continue
+                val backupOk = (backupResult as? RootResult.Completed)?.output?.let {
+                    RootParamPolicy.HMA_BACKUP_OK.matcher(it).matches()
+                } ?: false
+                if (!backupOk) continue
 
                 // Write modified JSON using a temporary file, preserving owner and SELinux context.
                 val b64 = android.util.Base64.encodeToString(
                     root.toString().toByteArray(Charsets.UTF_8),
                     android.util.Base64.NO_WRAP
                 )
-                val tmpConfig = "$configPath.tmp"
-                val quotedTmp = shellQuote(tmpConfig)
-
-                val writeScript = "OWNER=\$(stat -c '%u:%g' $quotedConfig 2>/dev/null); " +
-                        "echo '$b64' | base64 -d > $quotedTmp && " +
-                        "([ -z \"\$OWNER\" ] || chown \$OWNER $quotedTmp 2>/dev/null) && " +
-                        "chmod 600 $quotedTmp 2>/dev/null && " +
-                        "(restorecon $quotedTmp 2>/dev/null || true) && " +
-                        "mv -f $quotedTmp $quotedConfig && " +
-                        "([ -z \"\$OWNER\" ] || chown \$OWNER $quotedConfig 2>/dev/null) && " +
-                        "chmod 600 $quotedConfig 2>/dev/null && " +
-                        "(restorecon $quotedConfig 2>/dev/null || true) && " +
-                        "echo WAEX_HMA_WRITE_OK"
-
-                val writeResult = AppRestartHelper.runRootCommand(writeScript, 8_000L)
-                val verifiedJson = if (writeResult?.contains("WAEX_HMA_WRITE_OK") == true) {
-                    AppRestartHelper.runRootCommand("cat $quotedConfig 2>/dev/null")
+                val writeResult = RegisteredRootRunner.run(
+                    "hma.write_config",
+                    mapOf("path" to configPath, "payload" to b64),
+                    "hma"
+                )
+                val writeOk = (writeResult as? RootResult.Completed)?.output?.let {
+                    RootParamPolicy.HMA_WRITE_OK.matcher(it).matches()
+                } ?: false
+                val verifiedJson = if (writeOk) {
+                    readHmaConfig(configPath)
                 } else null
                 val verified = try {
                     val parsed = JSONObject(verifiedJson ?: "")
@@ -439,9 +449,10 @@ object HmaDiagnostics {
                     anySuccess = true
                 } else {
                     // A failed/partial write must never strand the user with a broken HMA config.
-                    AppRestartHelper.runRootCommand(
-                        "cp -p $quotedBackup $quotedConfig 2>/dev/null && " +
-                                "restorecon $quotedConfig 2>/dev/null; true"
+                    RegisteredRootRunner.run(
+                        "hma.restore_config",
+                        mapOf("path" to configPath),
+                        "hma"
                     )
                 }
             } catch (_: Exception) {}
@@ -457,22 +468,28 @@ object HmaDiagnostics {
 
     /**
      * Force-stops all HMA and related app instances and processes.
+     *
+     * R3 fix: every target is PACKAGE_NAME-validated by the registry AND passes the
+     * HMA allowlist (RootParamPolicy.isHmaPackage) at the caller. Apps merely named
+     * like HMA still get stopped if they pass both checks — that residual is honest
+     * and disclosed in the detail string.
      */
     fun forceStopHmaApps(context: Context) {
         val installedHmas = getInstalledHmaPackages(context)
         for (pkg in installedHmas) {
-            AppRestartHelper.runRootCommand("am force-stop $pkg")
+            if (!RootParamPolicy.isHmaPackage(pkg)) continue
+            RegisteredRootRunner.run("hma.force_stop", mapOf("package" to pkg), "hma")
         }
         // Also fallback to any packages directly found by pm
-        val pmOut = AppRestartHelper.runRootCommand("pm list packages")
+        val pmResult = RegisteredRootRunner.run("hma.discover.packages", callerTag = "hma")
+        val pmOut = (pmResult as? RootResult.Completed)?.output
         if (!pmOut.isNullOrBlank()) {
             pmOut.lines().forEach { raw ->
                 val line = raw.trim()
                 if (line.startsWith("package:")) {
                     val p = line.removePrefix("package:").trim()
-                    val lower = p.lowercase()
-                    if (lower.contains("hma") || lower.contains("hidemyapp") || lower.endsWith(".hmal")) {
-                        AppRestartHelper.runRootCommand("am force-stop $p")
+                    if (RootParamPolicy.isHmaPackage(p)) {
+                        RegisteredRootRunner.run("hma.force_stop", mapOf("package" to p), "hma")
                     }
                 }
             }
