@@ -1,6 +1,7 @@
 package com.waenhancer.app
 
 import com.waenhancer.app.R
+import com.waenhancer.root.RootGate
 import com.waenhancer.utils.UiText
 
 import android.Manifest
@@ -133,6 +134,45 @@ class PermissionsActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         startupSplash.setKeepOnScreenCondition { !rootCheckComplete }
 
+        if (!RootGate.isConsentReviewed(this)) {
+            // Consent onboarding must precede the first su probe.
+            showConsentReviewThenProbe()
+        } else {
+            startRootProbe()
+        }
+    }
+
+    private fun showConsentReviewThenProbe() {
+        enableEdgeToEdge()
+        setContent {
+            val themeMode = preferenceManager.getString("app_theme_mode", "System")
+            val interfaceSize = InterfaceSize.fromStorage(
+                preferenceManager.getString("app_interface_size", "Compact")
+            )
+            val isDark = when (themeMode) {
+                "Dark" -> true
+                "Light" -> false
+                else -> isSystemInDarkTheme()
+            }
+            WaexTheme(
+                darkTheme = isDark,
+                useMonet = themeMode == "Monet",
+                interfaceSize = interfaceSize
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    RootConsentReviewScreen(onContinue = {
+                        RootGate.markConsentReviewed(this@PermissionsActivity)
+                        startRootProbe()
+                    })
+                }
+            }
+        }
+    }
+
+    private fun startRootProbe() {
         lifecycleScope.launch {
             rootGranted = withContext(Dispatchers.IO) {
                 UpdateDownloader.hasRootAccess()
