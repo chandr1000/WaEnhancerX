@@ -23,13 +23,14 @@ scope = [item.text.strip() for arr in xml.findall('string-array')
 assert len(scope) > 10 and 'com.whatsapp' in scope and 'com.whatsapp.w4b' in scope
 
 with tempfile.TemporaryDirectory(prefix='waex_root_runner_') as output:
-    sources = [SRC/'RestartTargetPolicy.java', SRC/'RootCommandRunner.java',
+    sources = [SRC/'RestartTargetPolicy.java',
                ROOT_PKG/'RootEngine.java',
-               QA/'TestRestartTargetPolicy.java', QA/'TestRootCommandRunner.java']
+               QA/'TestRestartTargetPolicy.java', QA/'TestRootEngine.java']
     subprocess.run(['javac', '--release', '17', '-d', output, *map(str, sources)], check=True)
-    for name, argv in [('TestRestartTargetPolicy', scope), ('TestRootCommandRunner', [])]:
+    for name, argv in [('TestRestartTargetPolicy', scope), ('TestRootEngine', [])]:
         subprocess.run(['java', '-cp', output,
-                        'com.waenhancer.xposed.utils.'+name, *argv], check=True)
+                        'com.waenhancer.'+('xposed.utils.'+name if name=='TestRestartTargetPolicy' else 'root.'+name),
+                        *argv], check=True)
 
 # This second compilation exercises production AppRestartHelper but substitutes only the
 # Android framework, Kotlin package detector, and the external su process starter.
@@ -140,34 +141,6 @@ public class WhatsAppPackageDetector {
  public static Set<String> getSupportedPackages(Context c) {return SCOPE;}
 }
 ''',
- 'com/waenhancer/xposed/utils/RootCommandRunner.java': '''package com.waenhancer.xposed.utils;
-import java.io.IOException;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-public class RootCommandRunner {
- interface Starter {Process start(String command) throws IOException;}
- public static final CopyOnWriteArrayList<String> commands = new CopyOnWriteArrayList<>();
- public static volatile String mode = "denied";
- public static volatile CountDownLatch entered, release;
- public static String run(String command,long timeout) {
-  return run(command, timeout, null);
- }
- static String run(String command,long timeout,Starter starter) {
-  commands.add(command);
-  if (mode.equals("blocked")) {
-   entered.countDown();
-   try {release.await(2,TimeUnit.SECONDS);}catch(InterruptedException e){Thread.currentThread().interrupt();}
-   return null;
-  }
-  if (mode.equals("denied")) return null;
-  if (command.equals("id")) return "uid=0(root) gid=0(root)";
-  if (command.startsWith("am force-stop")) return "";
-  if (command.startsWith("monkey")) return mode.equals("root") ? "Events injected: 1" : null;
-  return null;
- }
-}
-''',
  'com/waenhancer/root/RootResult.java': '''package com.waenhancer.root;
 public abstract class RootResult {
  public static final class Success extends RootResult {}
@@ -189,19 +162,31 @@ public abstract class RootResult {
 }
 ''',
  'com/waenhancer/root/RegisteredRootRunner.java': '''package com.waenhancer.root;
-import com.waenhancer.xposed.utils.RootCommandRunner;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 public final class RegisteredRootRunner {
+ public static final CopyOnWriteArrayList<String> commands = new CopyOnWriteArrayList<>();
+ public static volatile String mode = "denied";
+ public static volatile CountDownLatch entered, release;
  private RegisteredRootRunner() {}
  public static RootResult run(String id) { return run(id, Collections.emptyMap(), "unknown"); }
  public static RootResult run(String id, Map<String,String> params, String callerTag) {
   String cmd = build(id, params);
   if (cmd == null) return new RootResult.Blocked("UNREGISTERED");
-  String out = RootCommandRunner.run(cmd, 4000L);
-  if (out == null) return new RootResult.Failed("NONZERO_EXIT");
-  if (out.isEmpty()) return new RootResult.Success();
-  return new RootResult.Completed(out);
+  commands.add(cmd);
+  if (mode.equals("blocked")) {
+   entered.countDown();
+   try {release.await(2,TimeUnit.SECONDS);}catch(InterruptedException e){Thread.currentThread().interrupt();}
+   return new RootResult.Failed("NONZERO_EXIT");
+  }
+  if (mode.equals("denied")) return new RootResult.Failed("NONZERO_EXIT");
+  if (cmd.equals("id")) return new RootResult.Completed("uid=0(root) gid=0(root)");
+  if (cmd.startsWith("am force-stop")) return new RootResult.Success();
+  if (cmd.startsWith("monkey")) return mode.equals("root") ? new RootResult.Completed("Events injected: 1") : new RootResult.Failed("NONZERO_EXIT");
+  return new RootResult.Failed("NONZERO_EXIT");
  }
  private static String build(String id, Map<String,String> params) {
   switch (id) {
@@ -250,8 +235,9 @@ checks = {
     'root stop performed before module broadcast': app.index('boolean stoppedByRoot') < app.index('context.sendBroadcast(restart)'),
     'no broadcast when root succeeds': 'if (!stoppedByRoot) {' in app,
     'restart path routed via RegisteredRootRunner': 'RegisteredRootRunner.run(' in app,
-    'no modern process waitFor overload': 'waitFor(timeoutMillis, TimeUnit.MILLISECONDS)' not in (SRC/'RootCommandRunner.java').read_text() and 'waitFor(timeoutMillis, TimeUnit.MILLISECONDS)' not in (ROOT_PKG/'RootEngine.java').read_text(),
+    'no modern process waitFor overload': 'waitFor(timeoutMillis, TimeUnit.MILLISECONDS)' not in (ROOT_PKG/'RootEngine.java').read_text(),
     'no unvalidated interpolation of package into shell': '"am force-stop " + packageName' not in app,
+    'raw door deleted': 'runRootCommand' not in app,
 }
 for label, valid in checks.items():
     assert valid, 'Restart safety integration regression: ' + label

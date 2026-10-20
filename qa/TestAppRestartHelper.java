@@ -11,6 +11,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import com.waenhancer.root.RegisteredRootRunner;
 import com.waenhancer.utils.WhatsAppPackageDetector;
 
 /** Compiles and exercises the actual AppRestartHelper against Android/root doubles. */
@@ -61,10 +62,10 @@ public final class TestAppRestartHelper {
     }
 
     private static void expectNoAction(FakeContext context, String name) {
-        int previous = RootCommandRunner.commands.size();
+        int previous = RegisteredRootRunner.commands.size();
         int attempts = context.pm.calls;
         AppRestartHelper.restartPackage(context, name, "Test");
-        ok(previous == RootCommandRunner.commands.size(), "unexpected root command for " + name);
+        ok(previous == RegisteredRootRunner.commands.size(), "unexpected root command for " + name);
         ok(context.broadcasts == 0 && context.launches == 0, "unexpected activity for " + name);
         if (RestartTargetPolicy.isSupportedTarget(name, WhatsAppPackageDetector.SCOPE)) {
             ok(context.pm.calls == attempts + 1, "expected installer lookup");
@@ -75,7 +76,7 @@ public final class TestAppRestartHelper {
 
     public static void main(String[] args) throws Exception {
         WhatsAppPackageDetector.SCOPE = new LinkedHashSet<>(Arrays.asList(args));
-        RootCommandRunner.mode = "denied";
+        RegisteredRootRunner.mode = "denied";
         FakeContext context = new FakeContext();
         context.pm.intent = null;
         expectNoAction(context, "com.whatsapp");  // No launch intent -> do not stop WhatsApp.
@@ -89,7 +90,7 @@ public final class TestAppRestartHelper {
 
         FakeContext broadcastFallback = new FakeContext();
         broadcastFallback.setTarget("com.whatsapp");
-        int oldRoot = RootCommandRunner.commands.size();
+        int oldRoot = RegisteredRootRunner.commands.size();
         AppRestartHelper.restartPackage(broadcastFallback, "com.whatsapp", "WhatsApp");
         ok(broadcastFallback.awaited.await(2, TimeUnit.SECONDS), "no-root fallback never launched");
         ok(broadcastFallback.broadcasts == 1, "no-root fallback must broadcast once");
@@ -100,29 +101,29 @@ public final class TestAppRestartHelper {
         ok("com.whatsapp".equals(broadcastFallback.launch.getPackage()), "wrong fallback launch package");
         ok((broadcastFallback.launch.getFlags() & (Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK)) ==
                 (Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK), "missing Activity flags");
-        ok(RootCommandRunner.commands.size() == oldRoot + 1, "no-root branch launched monkey");
+        ok(RegisteredRootRunner.commands.size() == oldRoot + 1, "no-root branch launched monkey");
         awaitIdle();
 
-        RootCommandRunner.mode = "root";
-        RootCommandRunner.commands.clear();
+        RegisteredRootRunner.mode = "root";
+        RegisteredRootRunner.commands.clear();
         FakeContext root = new FakeContext();
         root.setTarget("com.whatsapp.w4b");
         int status0 = Toast.MESSAGES.size();
         AppRestartHelper.restartPackage(root, "com.whatsapp.w4b", "WhatsApp Business");
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
         while (Toast.MESSAGES.size() <= status0 + 1 && System.nanoTime() < deadline) Thread.sleep(5L);
-        ok(RootCommandRunner.commands.size()==2, "root should run force-stop then monkey");
-        ok(RootCommandRunner.commands.get(0).equals("am force-stop 'com.whatsapp.w4b'"), "root stop quoting");
-        ok(RootCommandRunner.commands.get(1).equals(
+        ok(RegisteredRootRunner.commands.size()==2, "root should run force-stop then monkey");
+        ok(RegisteredRootRunner.commands.get(0).equals("am force-stop 'com.whatsapp.w4b'"), "root stop quoting");
+        ok(RegisteredRootRunner.commands.get(1).equals(
                 "monkey -p 'com.whatsapp.w4b' -c android.intent.category.LAUNCHER 1"), "root monkey quoting");
         ok(root.broadcasts == 0 && root.launches == 0, "do not kill newly launched root process");
         awaitIdle();
         ok(AppRestartHelper.hasRootAccess(), "root ID helper");
-        RootCommandRunner.mode = "denied";
+        RegisteredRootRunner.mode = "denied";
         ok(!AppRestartHelper.hasRootAccess(), "no-root ID helper");
 
-        RootCommandRunner.mode = "stoponly";
-        RootCommandRunner.commands.clear();
+        RegisteredRootRunner.mode = "stoponly";
+        RegisteredRootRunner.commands.clear();
         FakeContext clone = new FakeContext();
         clone.setTarget("com.gbwhatsapp");
         AppRestartHelper.restartPackage(clone, "com.gbwhatsapp", "GBWhatsApp");
@@ -130,10 +131,10 @@ public final class TestAppRestartHelper {
         ok(clone.broadcasts == 0, "broadcast after successful force-stop would kill relaunch");
         ok(clone.launches == 1, "failed monkey should fall back to normal launcher");
         ok("com.gbwhatsapp".equals(clone.launch.getPackage()), "clone package mutated");
-        ok(RootCommandRunner.commands.size() == 2, "expected stop and attempted monkey");
+        ok(RegisteredRootRunner.commands.size() == 2, "expected stop and attempted monkey");
         awaitIdle();
 
-        RootCommandRunner.mode = "denied";
+        RegisteredRootRunner.mode = "denied";
         FakeContext rejected = new FakeContext();
         rejected.setTarget("com.whatsapp");
         rejected.failLaunch = true;
@@ -142,19 +143,19 @@ public final class TestAppRestartHelper {
         awaitIdle();
         ok(Toast.MESSAGES.stream().anyMatch(s -> s.contains("Could not reopen WhatsApp")), "launch failure not reported");
 
-        RootCommandRunner.mode = "blocked";
-        RootCommandRunner.entered = new CountDownLatch(1);
-        RootCommandRunner.release = new CountDownLatch(1);
+        RegisteredRootRunner.mode = "blocked";
+        RegisteredRootRunner.entered = new CountDownLatch(1);
+        RegisteredRootRunner.release = new CountDownLatch(1);
         FakeContext simultaneous = new FakeContext();
         simultaneous.setTarget("com.whatsapp");
-        RootCommandRunner.commands.clear();
+        RegisteredRootRunner.commands.clear();
         AppRestartHelper.restartPackage(simultaneous, "com.whatsapp", "WhatsApp");
-        ok(RootCommandRunner.entered.await(2, TimeUnit.SECONDS), "root worker never entered");
+        ok(RegisteredRootRunner.entered.await(2, TimeUnit.SECONDS), "root worker never entered");
         int numberBefore = simultaneous.pm.calls;
         AppRestartHelper.restartPackage(simultaneous, "com.whatsapp", "WhatsApp");
         ok(simultaneous.pm.calls == numberBefore + 1, "missing safe launcher check on duplicate request");
-        ok(RootCommandRunner.commands.size() == 1, "second root command should be suppressed");
-        RootCommandRunner.release.countDown();
+        ok(RegisteredRootRunner.commands.size() == 1, "second root command should be suppressed");
+        RegisteredRootRunner.release.countDown();
         ok(simultaneous.awaited.await(2, TimeUnit.SECONDS), "held worker never completed");
         ok(simultaneous.broadcasts == 1 && simultaneous.launches == 1,
                 "duplicate requests triggered too many broadcasts/launches");

@@ -30,10 +30,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'app/src/main/java'
 
-SU_SITES_EXPECTED_PHASE_1_TO_4 = {
+SU_SITES_EXPECTED_PHASE_5 = {
     'app/src/main/java/com/waenhancer/root/RootEngine.java',
-    'app/src/main/java/com/waenhancer/xposed/utils/AppRestartHelper.java',
 }
+
+# Phase 5 is now active: exactly one su site (the kernel), zero legacy doors.
+SU_SITES_EXPECTED_PHASE_1_TO_4 = SU_SITES_EXPECTED_PHASE_5
 
 ALLOWED_COMMAND_IDS = {
     'root.probe.id',
@@ -136,11 +138,8 @@ def check_runner_call_sites_use_literal_ids() -> list[str]:
 
 def check_root_engine_isolation() -> list[str]:
     failures: list[str] = []
-    # RootCommandRunner is the deprecated delegating shim that forwards to
-    # RootEngine during the migration; it is removed in Phase 5.
-    allowed_outside_root = {
-        'app/src/main/java/com/waenhancer/xposed/utils/RootCommandRunner.java',
-    }
+    # Phase 5: RootCommandRunner shim is deleted, so no production code outside
+    # com.waenhancer.root may reference RootEngine.
     for path in APP.rglob('*'):
         if not path.is_file() or path.suffix not in {'.java', '.kt'}:
             continue
@@ -148,8 +147,6 @@ def check_root_engine_isolation() -> list[str]:
         if rel == 'app/src/main/java/com/waenhancer/root/RootEngine.java':
             continue
         if rel.startswith('app/src/main/java/com/waenhancer/root/'):
-            continue
-        if rel in allowed_outside_root:
             continue
         text = path.read_text(encoding='utf-8', errors='replace')
         if 'RootEngine' in text and 'com.waenhancer.root.RootEngine' in text:
@@ -172,11 +169,17 @@ def check_no_root_imports_in_xposed_features() -> list[str]:
 
 
 def check_root_command_runner_deprecated() -> list[str]:
-    path = APP / 'com/waenhancer/xposed/utils/RootCommandRunner.java'
-    text = path.read_text(encoding='utf-8', errors='replace')
-    if '@Deprecated' not in text:
-        return [f'{path.relative_to(ROOT)}: missing @Deprecated annotation']
-    return []
+    # Phase 5: the RootCommandRunner shim and AppRestartHelper.runRootCommand
+    # raw door must both be gone. Exactly one su site remains (RootEngine).
+    failures: list[str] = []
+    runner = APP / 'com/waenhancer/xposed/utils/RootCommandRunner.java'
+    if runner.exists():
+        failures.append(f'{runner.relative_to(ROOT)}: shim must be deleted in Phase 5')
+    helper = (APP / 'com/waenhancer/xposed/utils/AppRestartHelper.java').read_text(
+        encoding='utf-8', errors='replace')
+    if 'runRootCommand' in helper:
+        failures.append('AppRestartHelper.runRootCommand: raw door must be deleted in Phase 5')
+    return failures
 
 
 def check_schema_keys() -> list[str]:

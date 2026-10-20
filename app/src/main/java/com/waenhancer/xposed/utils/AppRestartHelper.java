@@ -33,7 +33,6 @@ public final class AppRestartHelper {
     });
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final AtomicBoolean RESTART_PENDING = new AtomicBoolean(false);
-    private static final long ROOT_TIMEOUT_MS = 4_000L;
     private static final long BROADCAST_SETTLE_MS = 400L;
     private static final String RESTART_ACTION = "com.waenhancer.WHATSAPP.RESTART";
 
@@ -45,18 +44,6 @@ public final class AppRestartHelper {
             return RootParamPolicy.reportsRootId(((RootResult.Completed) result).getOutput());
         }
         return false;
-    }
-
-    /** For internal callers. Do not call this synchronous operation from the UI thread. */
-    public static String runRootCommand(String command) {
-        return runRootCommand(command, ROOT_TIMEOUT_MS);
-    }
-
-    /** Variant for callers that need a longer budget than the shared 4 s default. */
-    public static String runRootCommand(String command, long timeoutMillis) {
-        return RootCommandRunner.run(command, timeoutMillis,
-                value -> new ProcessBuilder("su", "-c", value)
-                        .redirectErrorStream(true).start());
     }
 
     /**
