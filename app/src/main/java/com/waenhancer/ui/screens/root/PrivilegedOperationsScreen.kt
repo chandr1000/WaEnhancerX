@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -62,6 +63,13 @@ fun PrivilegedOperationsScreen() {
     val auditEntries by RootAuditLog.entries.collectAsState()
     val specs = remember { RootCommandRegistry.all() }
     val categories = remember { specs.groupBy { it.category } }
+    // Tick every 5 seconds so age text ("Last run 5s ago") recomposes as time passes.
+    val nowMs by produceState(initialValue = System.currentTimeMillis()) {
+        while (true) {
+            kotlinx.coroutines.delay(5_000L)
+            value = System.currentTimeMillis()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -99,7 +107,7 @@ fun PrivilegedOperationsScreen() {
                 items(categorySpecs, key = { it.id }) { spec ->
                     RootOperationRow(
                         spec = spec,
-                        lastRunSummary = lastRunSummaryFor(spec.id, auditEntries)
+                        lastRunSummary = lastRunSummaryFor(spec.id, auditEntries, nowMs)
                     )
                 }
             }
@@ -259,7 +267,8 @@ private fun categoryTitle(category: Category): String = when (category) {
 @Composable
 private fun lastRunSummaryFor(
     commandId: String,
-    entries: List<RootAuditLog.Entry>
+    entries: List<RootAuditLog.Entry>,
+    nowMs: Long
 ): String {
     if (entries.isEmpty()) {
         return stringResource(R.string.rootop_never_run)
@@ -270,7 +279,7 @@ private fun lastRunSummaryFor(
     }
     val count = matching.size
     val mostRecent = matching.last()
-    val ageMs = System.currentTimeMillis() - mostRecent.epochMs
+    val ageMs = nowMs - mostRecent.epochMs
     val ageText = when {
         ageMs < 60_000 -> "${ageMs / 1000}s"
         ageMs < 3_600_000 -> "${ageMs / 60_000}min"
