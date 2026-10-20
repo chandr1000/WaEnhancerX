@@ -43,7 +43,8 @@ fun RootAuditLogScreen() {
     val nav = LocalWaexNavController.current
     val context = LocalContext.current
     val entries by RootAuditLog.entries.collectAsState()
-    val auditEnabled = RootGate.isAuditLogEnabled()
+    // Read the Compose-observable state directly so the switch recomposes on toggle.
+    val auditEnabled = RootGate.auditLogEnabled.value
 
     Scaffold(
         topBar = {

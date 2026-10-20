@@ -1,9 +1,10 @@
 package com.waenhancer.root
 
 import android.content.Context
-import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import com.waenhancer.config.PreferenceStores
+import androidx.compose.runtime.mutableStateMapOf
 
 /**
  * Per-command kill-switch persisted in `private_config` (MODE_PRIVATE, module
@@ -28,7 +29,7 @@ object RootGate {
     const val KEY_CONSENT_REVIEWED = "root_consent_reviewed"
 
     internal val state: SnapshotStateMap<String, Boolean> = mutableStateMapOf()
-    @Volatile private var auditLogEnabled = true
+    internal var auditLogEnabled = mutableStateOf(true)
 
     /** Load every toggle value from private_config. Call from `Application.onCreate`. */
     fun load(context: Context) {
@@ -42,7 +43,7 @@ object RootGate {
         }
         state.clear()
         state.putAll(incoming)
-        auditLogEnabled = store.getBoolean(KEY_AUDIT_LOG_ENABLED, true)
+        auditLogEnabled.value = store.getBoolean(KEY_AUDIT_LOG_ENABLED, true)
     }
 
     fun isEnabled(commandId: String): Boolean {
@@ -64,10 +65,10 @@ object RootGate {
             .putBoolean(keyFor(commandId), enabled).commit()
     }
 
-    fun isAuditLogEnabled(): Boolean = auditLogEnabled
+    fun isAuditLogEnabled(): Boolean = auditLogEnabled.value
 
     fun setAuditLogEnabled(context: Context, enabled: Boolean) {
-        auditLogEnabled = enabled
+        auditLogEnabled.value = enabled
         PreferenceStores.privateStore(context).edit()
             .putBoolean(KEY_AUDIT_LOG_ENABLED, enabled).commit()
     }
