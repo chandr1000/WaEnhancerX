@@ -46,10 +46,16 @@ object RootAuditLog {
     ) {
         if (!RootGate.isAuditLogEnabled()) return
         val preview = rawOutput?.let { if (it.length <= PREVIEW_CHARS) it else it.take(PREVIEW_CHARS) }
+        // Snapshot the params map so later caller mutation cannot retroactively
+        // change a recorded entry. BASE64_TEXT payloads are masked to a length
+        // preview so the in-memory log never holds the full HMA config body.
+        val snapshotParams = params.mapValues { (key, value) ->
+            if (key == "payload" || key == "text") "<${value.length} chars>" else value
+        }
         val entry = Entry(
             epochMs = System.currentTimeMillis(),
             commandId = commandId,
-            params = params,
+            params = snapshotParams,
             outcome = outcome,
             outputPreview = preview,
             durationMs = durationMs,

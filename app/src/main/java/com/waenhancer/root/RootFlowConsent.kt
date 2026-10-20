@@ -29,9 +29,17 @@ object RootFlowConsent {
         return PreFlightResult(true)
     }
 
-    /** Re-check immediately before each step. Free map lookup. */
-    fun isStepEnabled(commandId: String): Boolean {
-        val spec = RootCommandRegistry.spec(commandId) ?: return false
-        return !spec.toggleable || RootGate.isEnabled(commandId)
+    /**
+     * Re-check immediately before each step. Returns the typed BlockedReason
+     * (or null when the step is allowed) so callers can produce the correct
+     * toast and audit entry.
+     */
+    fun stepBlockedReason(commandId: String): BlockedReason? {
+        val spec = RootCommandRegistry.spec(commandId) ?: return BlockedReason.UNREGISTERED
+        return if (spec.toggleable && !RootGate.isEnabled(commandId))
+            BlockedReason.DISABLED_BY_USER else null
     }
+
+    /** Backwards-compatible boolean view of [stepBlockedReason]. */
+    fun isStepEnabled(commandId: String): Boolean = stepBlockedReason(commandId) == null
 }
