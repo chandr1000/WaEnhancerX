@@ -42,7 +42,12 @@ public final class AppRestartHelper {
 
     /** For internal callers. Do not call this synchronous operation from the UI thread. */
     public static String runRootCommand(String command) {
-        return RootCommandRunner.run(command, ROOT_TIMEOUT_MS,
+        return runRootCommand(command, ROOT_TIMEOUT_MS);
+    }
+
+    /** Variant for callers that need a longer budget than the shared 4 s default. */
+    public static String runRootCommand(String command, long timeoutMillis) {
+        return RootCommandRunner.run(command, timeoutMillis,
                 value -> new ProcessBuilder("su", "-c", value)
                         .redirectErrorStream(true).start());
     }

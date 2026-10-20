@@ -420,7 +420,7 @@ object HmaDiagnostics {
                         "(restorecon $quotedConfig 2>/dev/null || true) && " +
                         "echo WAEX_HMA_WRITE_OK"
 
-                val writeResult = AppRestartHelper.runRootCommand(writeScript)
+                val writeResult = AppRestartHelper.runRootCommand(writeScript, 8_000L)
                 val verifiedJson = if (writeResult?.contains("WAEX_HMA_WRITE_OK") == true) {
                     AppRestartHelper.runRootCommand("cat $quotedConfig 2>/dev/null")
                 } else null
