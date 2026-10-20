@@ -120,6 +120,61 @@ public final class TestRootParamPolicy {
         check(!RootCommandRegistryMirror.outputPolicyCheck("diag.process.pidof", "PID|com.whatsapp|123"),
                 "pidof missing sentinel fails");
 
-        System.out.println("PASS: " + checks + " RootParamPolicy + registry template + output-policy checks");
+        // --- BASE64_TEXT validation (BUG-005 fix) ---
+        check(RootParamPolicy.isValidBase64Text("aGVsbG8="), "valid base64");
+        check(RootParamPolicy.isValidBase64Text("YWJjZGVm"), "valid base64 no padding");
+        check(!RootParamPolicy.isValidBase64Text(null), "null base64 rejected");
+        check(!RootParamPolicy.isValidBase64Text(""), "empty base64 rejected");
+        check(!RootParamPolicy.isValidBase64Text("abc'def; rm -rf /"), "quote in base64 rejected");
+        check(!RootParamPolicy.isValidBase64Text("abc$(touch /tmp/p)"), "command sub in base64 rejected");
+        check(!RootParamPolicy.isValidBase64Text("abc def"), "whitespace in base64 rejected");
+
+        // --- update.* template goldens ---
+        Map<String, String> copyParams = new HashMap<>();
+        copyParams.put("source", "/data/cache/waex.apk");
+        copyParams.put("target", "/data/local/tmp/waex.abc");
+        String copyTemplate = RootCommandRegistryMirror.templateFor("update.copy", copyParams);
+        check(copyTemplate.contains("cat '/data/cache/waex.apk'"), "copy template quotes source");
+        check(copyTemplate.contains("wc -c < '/data/local/tmp/waex.abc'"), "copy template wc -c");
+        check(RootCommandRegistryMirror.templateFor("update.install",
+                Map.of("target", "/data/local/tmp/waex.abc")).contains("pm install -r -d --user 0"),
+                "install template");
+        check(RootCommandRegistryMirror.templateFor("update.cleanup",
+                Map.of("target", "/data/local/tmp/waex.abc")).equals("rm -f -- '/data/local/tmp/waex.abc'"),
+                "cleanup template");
+
+        // --- hma.* template goldens ---
+        check(RootCommandRegistryMirror.templateFor("hma.read_config",
+                Map.of("path", "/data/data/com.hma/config.json")).contains("head -c 262144"),
+                "read_config template");
+        check(RootCommandRegistryMirror.templateFor("hma.force_stop",
+                Map.of("package", "com.hma.app")).equals("am force-stop 'com.hma.app'"),
+                "force_stop template");
+
+        // --- update.* output-policy matrix ---
+        check(RootCommandRegistryMirror.outputPolicyCheck("update.mktemp", "/data/local/tmp/waex.AbC123"),
+                "mktemp policy pass");
+        check(!RootCommandRegistryMirror.outputPolicyCheck("update.mktemp", "/tmp/waex.X"),
+                "mktemp policy fail");
+        check(RootCommandRegistryMirror.outputPolicyCheck("update.copy", "12345"), "copy byte count pass");
+        check(!RootCommandRegistryMirror.outputPolicyCheck("update.copy", "0"), "copy zero fails");
+        check(!RootCommandRegistryMirror.outputPolicyCheck("update.copy", "abc"), "copy non-numeric fails");
+        check(RootCommandRegistryMirror.outputPolicyCheck("update.install", "Success"), "install success");
+        check(!RootCommandRegistryMirror.outputPolicyCheck("update.install", "Failure [INSTALL_FAILED]"),
+                "install failure");
+        check(RootCommandRegistryMirror.outputPolicyCheck("update.cleanup", ""), "cleanup empty ok");
+
+        // --- RootEngine.execResult tri-state (BUG-027 fix) ---
+        RootEngine.Result ok = RootEngine.execResult("printf ready", 2_000L,
+                command -> new ProcessBuilder("sh", "-c", command).redirectErrorStream(true).start());
+        check(ok.ok && !ok.timedOut && "ready".equals(ok.output), "execResult success");
+        RootEngine.Result timeout = RootEngine.execResult("sleep 3", 200L,
+                command -> new ProcessBuilder("sh", "-c", command).redirectErrorStream(true).start());
+        check(!timeout.ok && timeout.timedOut, "execResult timeout distinguished");
+        RootEngine.Result nonzero = RootEngine.execResult("false", 2_000L,
+                command -> new ProcessBuilder("sh", "-c", command).redirectErrorStream(true).start());
+        check(!nonzero.ok && !nonzero.timedOut, "execResult nonzero distinguished from timeout");
+
+        System.out.println("PASS: " + checks + " RootParamPolicy + registry template + output-policy + execResult checks");
     }
 }
