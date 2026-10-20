@@ -2,11 +2,16 @@ package com.waenhancer.utils
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
+import com.waenhancer.app.R
 import com.waenhancer.root.RegisteredRootRunner
 import com.waenhancer.root.RootParamPolicy
 import com.waenhancer.root.RootResult
 import com.waenhancer.root.RootFlowConsent
 import com.waenhancer.xposed.utils.AppRestartHelper
+import com.waenhancer.utils.UiText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -426,7 +431,11 @@ object HmaDiagnostics {
                 }
 
                 // Keep a recoverable copy before replacing HMA's live configuration.
-                if (!RootFlowConsent.isStepEnabled("hma.backup_config")) continue
+                if (!RootFlowConsent.isStepEnabled("hma.backup_config")) {
+                    postToast(context, UiText.get(R.string.rootop_toast_step_blocked,
+                        "Step \"%1\$s\" was skipped: disabled by you", "backup"))
+                    continue
+                }
                 val backupResult = RegisteredRootRunner.run(
                     "hma.backup_config",
                     mapOf("path" to configPath),
@@ -586,4 +595,10 @@ object HmaDiagnostics {
     }
 
     private fun shellQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
+
+    private fun postToast(context: Context, message: String) {
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
 }

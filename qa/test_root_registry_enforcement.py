@@ -109,30 +109,67 @@ PRIVATE_RUNTIME_KEYS = [
 
 
 def find_su_sites() -> set[str]:
+    """Find all files that spawn su. Matches multiple idioms:
+    ProcessBuilder("su"..., Runtime.exec("su..., and ProcessBuilder(listOf("su"..."""
     sites = set()
-    for path in APP.rglob('*.java'):
-        text = path.read_text(encoding='utf-8', errors='replace')
-        if 'ProcessBuilder("su"' in text:
-            sites.add(str(path.relative_to(ROOT)))
-    for path in APP.rglob('*.kt'):
-        text = path.read_text(encoding='utf-8', errors='replace')
-        if 'ProcessBuilder("su"' in text:
-            sites.add(str(path.relative_to(ROOT)))
-    return sites
-
-
-def check_runner_call_sites_use_literal_ids() -> list[str]:
-    failures: list[str] = []
-    pattern = re.compile(r'RegisteredRootRunner\.run\(\s*"([^"]+)"')
+    su_patterns = [
+        'ProcessBuilder("su"',
+        'Runtime.exec("su',
+        '"su", "-c"',  # listOf("su", "-c", ...) form
+    ]
     for path in APP.rglob('*'):
         if not path.is_file() or path.suffix not in {'.java', '.kt'}:
             continue
         text = path.read_text(encoding='utf-8', errors='replace')
-        for match in pattern.finditer(text):
+        for pattern in su_patterns:
+            if pattern in text:
+                sites.add(str(path.relative_to(ROOT)))
+                break
+    return sites
+
+
+def check_runner_call_sites_use_literal_ids() -> list[str]:
+    """Every RegisteredRootRunner.run(...) call site must pass a literal command id
+    that is in ALLOWED_COMMAND_IDS. Also detects non-literal call sites (variable
+    arg) which the old regex silently approved."""
+    failures: list[str] = []
+    literal_pattern = re.compile(r'RegisteredRootRunner\.run\(\s*"([^"]+)"')
+    any_call_pattern = re.compile(r'RegisteredRootRunner\.run\(')
+    literal_ids_seen: set[str] = set()
+    for path in APP.rglob('*'):
+        if not path.is_file() or path.suffix not in {'.java', '.kt'}:
+            continue
+        text = path.read_text(encoding='utf-8', errors='replace')
+        # Find all call sites
+        all_calls = list(any_call_pattern.finditer(text))
+        literal_calls = list(literal_pattern.finditer(text))
+        # If there are more calls than literal matches, some use non-literal args
+        if len(all_calls) > len(literal_calls):
+            failures.append(
+                f'{path.relative_to(ROOT)}: {len(all_calls) - len(literal_calls)} '
+                f'call site(s) use non-literal command id (must be a string literal)')
+        for match in literal_calls:
             command_id = match.group(1)
+            literal_ids_seen.add(command_id)
             if command_id not in ALLOWED_COMMAND_IDS:
                 failures.append(
                     f'{path.relative_to(ROOT)}: unknown command id "{command_id}"')
+    return failures
+
+
+def check_root_gate_uses_private_store() -> list[str]:
+    """RootGate.load/setEnabled/setAuditLogEnabled/markConsentReviewed/isConsentReviewed
+    must all call PreferenceStores.privateStore (not publicStore)."""
+    failures: list[str] = []
+    gate = (APP / 'com/waenhancer/root/RootGate.kt').read_text(encoding='utf-8', errors='replace')
+    expected_call = 'PreferenceStores.privateStore'
+    # Count occurrences — should appear in load, setEnabled, setAuditLogEnabled,
+    # markConsentReviewed, isConsentReviewed (5 call sites).
+    count = gate.count(expected_call)
+    if count < 5:
+        failures.append(f'RootGate.kt: only {count} privateStore calls (expected >= 5)')
+    if 'publicStore' in gate:
+        failures.append('RootGate.kt: must never call publicStore (world-readable)')
     return failures
 
 
@@ -214,17 +251,32 @@ def check_golden_templates_in_registry() -> list[str]:
 
 
 def check_toggle_keys_cover_registry() -> list[str]:
-    """Every toggleable spec in the registry must have a rootop_enabled_* key in schema."""
+    """Every toggleable spec in the registry must have a rootop_enabled_* key in schema.
+    Resolves const-ref ids (e.g. id = PROBE_ID) so the probe spec is not silently skipped."""
     registry = (APP / 'com/waenhancer/root/RootCommandRegistry.kt').read_text(
         encoding='utf-8', errors='replace')
     schema = (APP / 'com/waenhancer/config/PreferenceSchema.java').read_text(
         encoding='utf-8', errors='replace')
-    failures: list[str] = []
-    # Match each RootCommandSpec block: look for id = "X", then scan for toggleable = false/true
-    spec_pattern = re.compile(r'id\s*=\s*"([^"]+)".*?toggleable\s*=\s*(true|false)',
+    # Build a map of const val name -> value so we can resolve id = PROBE_ID references.
+    const_to_value: dict[str, str] = {}
+    for m in re.finditer(r'const\s+val\s+(\w+)\s*=\s*"([^"]+)"', registry):
+        const_to_value[m.group(1)] = m.group(2)
+    # Match each RootCommandSpec block: look for id = "X" or id = CONST, then scan
+    # for toggleable = false/true within the same block.
+    spec_pattern = re.compile(r'id\s*=\s*("[^"]+"|\w+).*?toggleable\s*=\s*(true|false)',
                               re.DOTALL)
+    failures: list[str] = []
     for match in spec_pattern.finditer(registry):
-        command_id, toggleable = match.group(1), match.group(2)
+        id_expr = match.group(1)
+        toggleable = match.group(2)
+        # Resolve const references
+        if id_expr.startswith('"'):
+            command_id = id_expr.strip('"')
+        elif id_expr in const_to_value:
+            command_id = const_to_value[id_expr]
+        else:
+            failures.append(f'unresolvable id expression: {id_expr}')
+            continue
         if toggleable == 'false':
             continue
         expected_key = 'rootop_enabled_' + command_id.replace('.', '_')
@@ -283,6 +335,7 @@ def main() -> int:
             failures.append(f'Missing expected ProcessBuilder("su" sites: {sorted(missing)}')
 
     failures.extend(check_runner_call_sites_use_literal_ids())
+    failures.extend(check_root_gate_uses_private_store())
     failures.extend(check_root_engine_isolation())
     failures.extend(check_no_root_imports_in_xposed_features())
     failures.extend(check_root_command_runner_deprecated())

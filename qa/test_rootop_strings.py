@@ -25,12 +25,6 @@ VALUES = ROOT / 'app/src/main/res/values/root_operations.xml'
 VALUES_IN = ROOT / 'app/src/main/res/values-in/root_operations.xml'
 REGISTRY = ROOT / 'app/src/main/java/com/waenhancer/root/RootCommandRegistry.kt'
 
-ALLOWED_FORMATTED_KEYS = {
-    'rootop_consent_body': '%1$d',
-    'rootop_toast_step_blocked': '%1$s',
-    'rootop_last_run_summary': '%1$s',
-    'rootop_run_count': '%1$d',
-}
 # Keys whose ID length may legitimately diverge by >20% because they contain
 # technical terms kept in English in both locales.
 LENGTH_TOLERANCE_OVERRIDE = frozenset()
@@ -70,22 +64,14 @@ def parse_registry_ids() -> set[str]:
 
 
 def check_format_args(name: str, en: str, id_text: str) -> list[str]:
+    """Verify the full set of %N$X format tokens is identical in EN and ID."""
     failures: list[str] = []
-    if name in ALLOWED_FORMATTED_KEYS:
-        expected = ALLOWED_FORMATTED_KEYS[name]
-        if expected not in en:
-            failures.append(f'{name}: EN missing expected format arg {expected}')
-        if expected not in id_text:
-            failures.append(f'{name}: ID missing expected format arg {expected}')
-        return failures
-    # Otherwise no format args allowed
     format_pattern = re.compile(r'%\d+\$[sdf]')
-    en_matches = format_pattern.findall(en)
-    id_matches = format_pattern.findall(id_text)
-    if en_matches:
-        failures.append(f'{name}: unexpected format args in EN {en_matches}')
-    if id_matches:
-        failures.append(f'{name}: unexpected format args in ID {id_matches}')
+    en_tokens = sorted(set(format_pattern.findall(en)))
+    id_tokens = sorted(set(format_pattern.findall(id_text)))
+    if en_tokens != id_tokens:
+        failures.append(
+            f'{name}: format-arg set mismatch (EN={en_tokens}, ID={id_tokens})')
     # No bare '%' either (would need %% + formatted=false)
     bare_en = re.findall(r'(?<!%)%(?!\d)', en)
     bare_id = re.findall(r'(?<!%)%(?!\d)', id_text)
@@ -94,6 +80,33 @@ def check_format_args(name: str, en: str, id_text: str) -> list[str]:
     if bare_id:
         failures.append(f'{name}: bare % in ID')
     return failures
+
+
+def check_strings_referenced_from_code(en_keys: list[str]) -> list[str]:
+    """Every rootop_* key must be referenced from at least one .kt/.java file."""
+    failures: list[str] = []
+    java_dir = ROOT / 'app/src/main/java'
+    all_source = []
+    for path in java_dir.rglob('*'):
+        if not path.is_file() or path.suffix not in {'.java', '.kt'}:
+            continue
+        all_source.append(path.read_text(encoding='utf-8', errors='replace'))
+    combined = '\n'.join(all_source)
+    for key in en_keys:
+        if f'R.string.{key}' not in combined:
+            failures.append(f'{key}: not referenced from any .kt/.java source file')
+    return failures
+
+
+def check_unescaped_apostrophes(entries: list[tuple[str, str]]) -> list[str]:
+    """Reject bare ' not preceded by backslash and not wrapped in double quotes."""
+    failures: list[str] = []
+    apostrophe_pattern = re.compile(r"(?<!\\)'(?![^\"]*\")")
+    for name, text in entries:
+        if apostrophe_pattern.search(text):
+            failures.append(f'{name}: unescaped apostrophe')
+    return failures
+
 
 
 def main() -> int:
@@ -155,12 +168,19 @@ def main() -> int:
             if key not in id_map:
                 failures.append(f'{command_id}: missing ID key {key}')
 
-    # Format-arg signature parity
+    # Format-arg signature parity (full set equality, not just one allowlisted token)
     for name, en_text in en_entries:
         if name not in id_map:
             continue
         id_text = id_map[name]
         failures.extend(check_format_args(name, en_text, id_text))
+
+    # Verify every rootop_* key is referenced from at least one source file
+    failures.extend(check_strings_referenced_from_code(en_keys))
+
+    # Reject unescaped apostrophes (aapt would reject these at build time)
+    failures.extend(check_unescaped_apostrophes(en_entries))
+    failures.extend(check_unescaped_apostrophes(id_entries))
 
     # ID length within ±20% (warning)
     warnings = []
@@ -182,7 +202,7 @@ def main() -> int:
         return 1
     print(f'PASS: rootop string-parity scanner (Layer 3) - '
           f'{len(en_keys)} keys, {len(registry_ids)} registry commands, '
-          f'{len(ALLOWED_FORMATTED_KEYS)} parametrized strings')
+          f'format-arg set parity enforced')
     for warning in warnings:
         print(f'  WARN: {warning}', file=sys.stderr)
     return 0

@@ -43,6 +43,7 @@ import com.waenhancer.root.RootCommandSpec
 import com.waenhancer.root.RootGate
 import com.waenhancer.root.RootResult
 import com.waenhancer.root.RiskLevel
+import com.waenhancer.utils.UiText
 import com.waenhancer.ui.components.StitchSwitch
 import com.waenhancer.ui.components.WaexSectionHeader
 import com.waenhancer.ui.components.WaexTopBar
@@ -259,9 +260,13 @@ private fun lastRunSummaryFor(
     commandId: String,
     entries: List<RootAuditLog.Entry>
 ): String {
-    if (entries.isEmpty()) return ""
+    if (entries.isEmpty()) {
+        return UiText.get(R.string.rootop_never_run, "Never run this session")
+    }
     val matching = entries.filter { it.commandId == commandId }
-    if (matching.isEmpty()) return ""
+    if (matching.isEmpty()) {
+        return UiText.get(R.string.rootop_never_run, "Never run this session")
+    }
     val count = matching.size
     val mostRecent = matching.last()
     val ageMs = System.currentTimeMillis() - mostRecent.epochMs
@@ -271,5 +276,7 @@ private fun lastRunSummaryFor(
         else -> "${ageMs / 3_600_000}h"
     }
     val plural = if (count == 1) "" else "s"
-    return "$count run$plural · last $ageText ago"
+    val countText = UiText.get(R.string.rootop_run_count, "%1\$d run%2\$s this session", count, plural)
+    val lastText = UiText.get(R.string.rootop_last_run_summary, "Last run %1\$s ago", ageText)
+    return "$countText · $lastText"
 }
