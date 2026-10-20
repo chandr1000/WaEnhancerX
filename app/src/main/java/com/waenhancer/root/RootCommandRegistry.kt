@@ -28,7 +28,7 @@ object RootCommandRegistry {
                 params = emptyList(),
                 template = { "id" },
                 outputPolicy = OutputPolicy.Regex(RootParamPolicy.ROOT_ID.toRegex()),
-                timeoutMs = 4_000L,
+                timeoutMs = 20_000L,
                 toggleable = false,
                 titleRes = R.string.rootop_root_probe_id_title,
                 descriptionRes = R.string.rootop_root_probe_id_desc,

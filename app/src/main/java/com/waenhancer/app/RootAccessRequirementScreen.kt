@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.sp
 import com.waenhancer.ui.designsystem.WaexIcons
 import com.waenhancer.ui.designsystem.WaexTheme
 
-enum class RootAccessState { Checking, Required, Granted }
+enum class RootAccessState { Checking, AwaitingGrant, Required, Granted }
 
 @Composable
 fun RootAccessRequirementScreen(
@@ -52,7 +52,7 @@ fun RootAccessRequirementScreen(
     val typography = WaexTheme.typography
     val radius = WaexTheme.radius
     val spacing = WaexTheme.spacing
-    val checking = state == RootAccessState.Checking
+    val checking = state == RootAccessState.Checking || state == RootAccessState.AwaitingGrant
 
     Column(
         modifier = Modifier
@@ -91,7 +91,12 @@ fun RootAccessRequirementScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = if (checking) UiText.get(R.string.waex_ui_checking_root_access_76c86676, "Checking root access") else UiText.get(R.string.waex_ui_root_access_is_required_a22936b2, "Root access is required"),
+            text = if (checking) {
+                if (state == RootAccessState.AwaitingGrant)
+                    UiText.get(R.string.rootop_awaiting_grant, "Waiting for superuser approval…")
+                else
+                    UiText.get(R.string.waex_ui_checking_root_access_76c86676, "Checking root access")
+            } else UiText.get(R.string.waex_ui_root_access_is_required_a22936b2, "Root access is required"),
             style = typography.displayLgMobile,
             fontWeight = FontWeight.Bold,
             color = colors.onBackground,
