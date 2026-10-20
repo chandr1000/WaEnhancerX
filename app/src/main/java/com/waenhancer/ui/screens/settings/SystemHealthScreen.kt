@@ -48,10 +48,14 @@ import com.waenhancer.utils.SystemDiagnosticsReader
 import com.waenhancer.utils.WhatsAppPackageDetector
 import com.waenhancer.utils.XposedRuntimeInspector
 import com.waenhancer.utils.TargetRuntimePresentation
+import com.waenhancer.root.RootCommandRegistry
+import com.waenhancer.root.RootGate
 import com.waenhancer.ui.components.rememberRuntimeObservationClock
+import com.waenhancer.ui.navigation.Screen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 
 @Composable
 fun SystemHealthScreen() {
@@ -234,7 +238,41 @@ fun SystemHealthScreen() {
                     }
                 }
                 Spacer(Modifier.height(12.dp))
+
+                PrivilegedOperationsEntryCard(nav = nav)
             }
+        }
+    }
+}
+
+@Composable
+private fun PrivilegedOperationsEntryCard(nav: com.waenhancer.ui.navigation.WaexNavController) {
+    val colors = WaexTheme.colors
+    val typography = WaexTheme.typography
+    val radius = WaexTheme.radius
+    val total = remember { RootCommandRegistry.all().size }
+    val disabled = remember { RootCommandRegistry.all().count { it.toggleable && !RootGate.isEnabled(it.id) } }
+    Surface(
+        shape = radius.bentoCardShape,
+        color = colors.surfaceContainerLow,
+        border = BorderStroke(1.dp, colors.outlineVariant),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { nav.navigateTo(Screen.PrivilegedOperations) }
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Text(
+                UiText.get(R.string.rootop_screen_title, "Privileged Operations"),
+                style = typography.bodyLg,
+                fontWeight = FontWeight.Bold,
+                color = colors.primary
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "$total registered · $disabled disabled by you",
+                style = typography.bodyMd,
+                color = colors.onSurfaceVariant
+            )
         }
     }
 }
