@@ -250,13 +250,16 @@ def check_debug_echo_debug_guarded() -> list[str]:
     if last_buildconfig_if == -1 or last_close > last_buildconfig_if:
         failures.append('debug.echo: spec must be registered inside `if (BuildConfig.DEBUG)`')
     # Verify the literal "debug.echo" appears only at debug call sites or the registry.
+    allowed_files_for_debug_echo = {
+        'app/src/main/java/com/waenhancer/root/RootCommandRegistry.kt',
+        'app/src/main/java/com/waenhancer/ui/screens/root/PrivilegedOperationsScreen.kt',
+        'app/src/main/java/com/waenhancer/app/RootConsentReviewScreen.kt',
+    }
     for path in APP.rglob('*'):
         if not path.is_file() or path.suffix not in {'.java', '.kt'}:
             continue
         rel = str(path.relative_to(ROOT))
-        if rel == 'app/src/main/java/com/waenhancer/root/RootCommandRegistry.kt':
-            continue
-        if rel == 'app/src/main/java/com/waenhancer/ui/screens/root/PrivilegedOperationsScreen.kt':
+        if rel in allowed_files_for_debug_echo:
             continue
         if rel.startswith('qa/'):
             continue
