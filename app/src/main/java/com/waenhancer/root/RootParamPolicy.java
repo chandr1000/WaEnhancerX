@@ -46,6 +46,9 @@ public final class RootParamPolicy {
     /** Sentinel written by the HMA write step on success. */
     public static final Pattern HMA_WRITE_OK = Pattern.compile("(?s).*\\bWAEX_HMA_WRITE_OK\\b.*");
 
+    /** Base64 (NO_WRAP) alphabet: letters, digits, +, /, and = padding. */
+    public static final Pattern BASE64_TEXT = Pattern.compile("^[A-Za-z0-9+/]+={0,2}$");
+
     private RootParamPolicy() {}
 
     public static boolean isValidPackageName(String value) {
@@ -84,6 +87,11 @@ public final class RootParamPolicy {
 
     public static boolean isMktempPath(String output) {
         return output != null && MKTEMP_PATH.matcher(output.trim()).matches();
+    }
+
+    public static boolean isValidBase64Text(String value) {
+        return value != null && !value.isEmpty() && value.length() <= 1_000_000
+                && BASE64_TEXT.matcher(value).matches();
     }
 
     /** POSIX single-quote wrapping with embedded single-quotes escaped as {@code '"'"'}. */

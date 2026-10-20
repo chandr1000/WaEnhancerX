@@ -100,10 +100,14 @@ object RegisteredRootRunner {
                         throw IllegalArgumentException("invalid PATH_STRICT: ${param.name}")
                     }
                 }
-                ParamKind.FILE_PATH, ParamKind.DERIVED_OUTPUT, ParamKind.BASE64_TEXT, ParamKind.CONSTANT -> {
+                ParamKind.BASE64_TEXT -> {
+                    if (!RootParamPolicy.isValidBase64Text(raw)) {
+                        throw IllegalArgumentException("invalid BASE64_TEXT: ${param.name}")
+                    }
+                }
+                ParamKind.FILE_PATH, ParamKind.DERIVED_OUTPUT, ParamKind.CONSTANT -> {
                     // FILE_PATH: app-generated cacheDir-derived path; validated at the caller.
                     // DERIVED_OUTPUT: value extracted from a previous command's policy-passing output.
-                    // BASE64_TEXT: app-generated Base64.NO_WRAP payload (shell-safe alphabet by construction).
                 }
             }
             validated[param.name] = raw
