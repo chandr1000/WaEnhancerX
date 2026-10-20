@@ -193,7 +193,6 @@ fun RootAccessRequirementScreen(
             Spacer(modifier = Modifier.height(10.dp))
             OutlinedButton(
                 onClick = onReviewCapabilities,
-                enabled = !checking,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),

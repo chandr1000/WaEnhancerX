@@ -193,7 +193,10 @@ class MainActivity : ComponentActivity() {
                                     onContinue = {
                                         RootGate.markConsentReviewed(this@MainActivity)
                                         consentReviewed = true
-                                        showConsentReviewFromRootScreen = false
+                                        if (showConsentReviewFromRootScreen) {
+                                            showConsentReviewFromRootScreen = false
+                                            rootCheckAttempt++
+                                        }
                                     }
                                 )
                             } else if (rootState != RootAccessState.Granted) {

@@ -78,7 +78,7 @@ fun PrivilegedOperationsScreen() {
                 onBackClick = { nav.popBack() },
                 actions = {
                     IconButton(onClick = { nav.navigateTo(Screen.RootAuditLog) }) {
-                        Icon(WaexIcons.Search, contentDescription = null)
+                        Icon(WaexIcons.Security, contentDescription = stringResource(R.string.rootop_log_title))
                     }
                 }
             )
@@ -237,20 +237,20 @@ private fun RootOperationRow(spec: RootCommandSpec, lastRunSummary: String) {
 
 @Composable
 private fun RiskChip(risk: RiskLevel) {
-    val (text, color) = when (risk) {
-        RiskLevel.INFO -> stringResource(R.string.rootop_risk_info) to WaexTheme.colors.outlineVariant
-        RiskLevel.LOW -> stringResource(R.string.rootop_risk_low) to WaexTheme.colors.primary.copy(alpha = 0.2f)
-        RiskLevel.HIGH -> stringResource(R.string.rootop_risk_high) to WaexTheme.colors.error.copy(alpha = 0.2f)
+    val (text, bgColor, textColor) = when (risk) {
+        RiskLevel.INFO -> Triple(stringResource(R.string.rootop_risk_info), WaexTheme.colors.outlineVariant, WaexTheme.colors.onSurface)
+        RiskLevel.LOW -> Triple(stringResource(R.string.rootop_risk_low), WaexTheme.colors.primary.copy(alpha = 0.2f), WaexTheme.colors.onSurface)
+        RiskLevel.HIGH -> Triple(stringResource(R.string.rootop_risk_high), WaexTheme.colors.error.copy(alpha = 0.5f), WaexTheme.colors.error)
     }
     Box(
         modifier = Modifier
-            .background(color, RoundedCornerShape(8.dp))
+            .background(bgColor, RoundedCornerShape(8.dp))
             .padding(horizontal = 8.dp, vertical = 2.dp)
     ) {
         Text(
             text = text,
             style = WaexTheme.typography.bodySm,
-            color = WaexTheme.colors.onSurface,
+            color = textColor,
             fontWeight = FontWeight.Medium
         )
     }
