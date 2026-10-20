@@ -116,8 +116,13 @@ private fun DetailMetaRow(spec: RootCommandSpec) {
         RiskLevel.LOW -> stringResource(R.string.rootop_risk_low)
         RiskLevel.HIGH -> stringResource(R.string.rootop_risk_high)
     }
+    val timeoutText = when {
+        spec.timeoutMs >= 60_000 -> "${spec.timeoutMs / 60_000}min"
+        spec.timeoutMs >= 1_000 -> "${spec.timeoutMs / 1_000}s"
+        else -> "${spec.timeoutMs}ms"
+    }
     Text(
-        text = "$category · $risk · ${spec.timeoutMs}ms",
+        text = "$category · $risk · $timeoutText",
         style = WaexTheme.typography.bodySm,
         color = WaexTheme.colors.onSurfaceVariant,
         fontWeight = FontWeight.Medium
