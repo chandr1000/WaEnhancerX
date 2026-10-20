@@ -191,6 +191,7 @@ class MainActivity : ComponentActivity() {
                             if (!consentReviewed || showConsentReviewFromRootScreen) {
                                 RootConsentReviewScreen(
                                     onContinue = {
+                                        RootGate.markConsentReviewed(this@MainActivity)
                                         consentReviewed = true
                                         showConsentReviewFromRootScreen = false
                                     }
