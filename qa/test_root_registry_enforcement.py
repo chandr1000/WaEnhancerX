@@ -41,6 +41,10 @@ ALLOWED_COMMAND_IDS = {
     'restart.target.launch',
     'diag.process.pidof',
     'diag.selinux.getenforce',
+    'update.mktemp',
+    'update.copy',
+    'update.install',
+    'update.cleanup',
 }
 
 GOLDEN_TEMPLATES = {
@@ -49,6 +53,10 @@ GOLDEN_TEMPLATES = {
     'restart.target.launch': "monkey -p '",
     'diag.selinux.getenforce': "getenforce",
     'diag.process.pidof': "END|WAEX_PROCESS_SNAPSHOT",
+    'update.mktemp': "mktemp /data/local/tmp/waex.XXXXXX",
+    'update.copy': "wc -c <",
+    'update.install': "pm install -r -d --user 0",
+    'update.cleanup': "rm -f --",
 }
 
 PRIVATE_RUNTIME_KEYS = [
@@ -56,6 +64,10 @@ PRIVATE_RUNTIME_KEYS = [
     'rootop_enabled_restart_target_launch',
     'rootop_enabled_diag_process_pidof',
     'rootop_enabled_diag_selinux_getenforce',
+    'rootop_enabled_update_mktemp',
+    'rootop_enabled_update_copy',
+    'rootop_enabled_update_install',
+    'rootop_enabled_update_cleanup',
     'root_audit_log_enabled',
     'root_consent_reviewed',
 ]

@@ -2,6 +2,10 @@ package com.waenhancer.update
 
 import com.waenhancer.app.R
 import com.waenhancer.utils.UiText
+import com.waenhancer.root.RegisteredRootRunner
+import com.waenhancer.root.RootFlowConsent
+import com.waenhancer.root.RootParamPolicy
+import com.waenhancer.root.RootResult
 
 import android.app.Activity
 import android.content.Context
@@ -13,7 +17,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Process
 import android.os.SystemClock
-import com.waenhancer.xposed.utils.RootCommandRunner
 import android.provider.Settings
 import android.widget.Toast
 import androidx.core.content.FileProvider
@@ -51,7 +54,7 @@ object UpdateDownloader {
         }.getOrDefault(false)
     }
 
-    private fun shellQuote(value: String) = "'" + value.replace("'", "'\"'\"'") + "'"
+    private fun shellQuote(value: String) = RootParamPolicy.shellQuote(value)
     interface DownloadCallback {
         fun onProgress(progress: Int, currentBytes: Long, totalBytes: Long)
         fun onSuccess(apkFile: File)
@@ -59,8 +62,11 @@ object UpdateDownloader {
     }
 
     fun hasRootAccess(): Boolean {
-        val output = runRootCommand("id")
-        return output?.let { "uid=0" in it } == true
+        // R7 fix: use the shared ROOT_ID regex (no substring matching). The probe
+        // is the registered root.probe.id entry; the result is a typed RootResult.
+        val result = RegisteredRootRunner.run("root.probe.id", callerTag = "update")
+        val output = (result as? RootResult.Completed)?.output
+        return RootParamPolicy.reportsRootId(output)
     }
 
     fun downloadApk(
@@ -160,33 +166,54 @@ object UpdateDownloader {
             return
         }
         Thread {
-            // mktemp creates the file exclusively; a predictable world-writable
-            // /data/local/tmp path would allow a symlink or APK-swap attack.
-            val created = runRootCommand("mktemp /data/local/tmp/waex.XXXXXX")
-            val temporary = created?.trim()
-                ?.takeIf { it.matches(Regex("/data/local/tmp/waex\\.[A-Za-z0-9]+")) }
-            val result = if (temporary != null) {
-                try {
-                    val target = shellQuote(temporary)
-                    val source = shellQuote(apkFile.absolutePath)
-                    val copyResult = runRootCommand(
-                        "cat $source > $target && chmod 644 $target && wc -c < $target"
-                    )?.trim().orEmpty()
-                    val size = copyResult.toLongOrNull() ?: 0
-                    if (size == apkFile.length() && size > 1024) {
-                        // Package Manager requires -d when the APK has a lower versionCode.
-                        runRootCommand("pm install -r -d --user 0 $target", 70)
-                    }
-                    else if (copyResult.isNotEmpty()) {
-                        "Failed to copy verified APK: $copyResult"
-                    } else {
-                        "Failed to copy verified APK to temporary storage"
-                    }
-                } finally {
-                    runRootCommand("rm -f -- ${shellQuote(temporary)}")
+            // Pre-flight consent: if the user disabled any step in the four-command
+            // chain, surface the disabled step before touching /data/local/tmp.
+            val chain = listOf("update.mktemp", "update.copy", "update.install", "update.cleanup")
+            val preFlight = RootFlowConsent.preFlight(chain)
+            if (!preFlight.allowed) {
+                activity.runOnUiThread {
+                    Toast.makeText(activity, UiText.get(R.string.rootop_toast_install_fallback, "Root install disabled by you — using the session installer"), Toast.LENGTH_LONG).show()
                 }
-            } else "Unable to obtain a private installation temporary file"
-            val success = result?.trim()?.startsWith("Success", ignoreCase = true) == true
+                installApk(activity, apkFile, expectedVersion)
+                return@Thread
+            }
+            var staging: String? = null
+            val result: String? = try {
+                // Step 1: mktemp — staging path is a DERIVED_OUTPUT for the next steps.
+                val mktempResult = RegisteredRootRunner.run("update.mktemp", callerTag = "update")
+                val mktempPath = (mktempResult as? RootResult.Completed)?.output?.trim()
+                if (mktempPath == null) return@Thread "Unable to obtain a private installation temporary file"
+                staging = mktempPath
+                // Re-check immediately before the copy step (TOCTOU guard).
+                if (!RootFlowConsent.isStepEnabled("update.copy")) return@Thread "Step \"copy\" was skipped: disabled by you"
+
+                // Step 2: copy + verify byte count.
+                val copyParams = mapOf(
+                    "source" to apkFile.absolutePath,
+                    "target" to mktempPath
+                )
+                val copyResult = RegisteredRootRunner.run("update.copy", copyParams, "update")
+                val copyOutput = (copyResult as? RootResult.Completed)?.output?.trim()
+                val size = copyOutput?.toLongOrNull() ?: 0
+                if (size != apkFile.length() || size <= 1024) {
+                    return@Thread if (copyOutput.isNullOrEmpty()) "Failed to copy verified APK to temporary storage"
+                    else "Failed to copy verified APK: $copyOutput"
+                }
+                if (!RootFlowConsent.isStepEnabled("update.install")) return@Thread "Step \"install\" was skipped: disabled by you"
+
+                // Step 3: pm install.
+                val installParams = mapOf("target" to mktempPath)
+                val installResult = RegisteredRootRunner.run("update.install", installParams, "update")
+                (installResult as? RootResult.Completed)?.output?.trim()
+            } finally {
+                // Step 4: cleanup (best-effort, runs in finally).
+                staging?.let { path ->
+                    if (RootFlowConsent.isStepEnabled("update.cleanup")) {
+                        RegisteredRootRunner.run("update.cleanup", mapOf("target" to path), "update")
+                    }
+                }
+            }
+            val success = result?.startsWith("Success", ignoreCase = true) == true
             activity.runOnUiThread {
                 if (success) {
                     Toast.makeText(activity, UiText.get(R.string.waex_ui_installation_successful_restarting_dbd45bac, "Installation successful. Restarting..."), Toast.LENGTH_LONG).show()
@@ -199,11 +226,6 @@ object UpdateDownloader {
             }
         }.start()
     }
-
-    /** Drain subprocess output concurrently so timeout still works when su hangs. */
-    private fun runRootCommand(command: String, timeoutSeconds: Long = 8): String? =
-        RootCommandRunner.run(command, TimeUnit.SECONDS.toMillis(timeoutSeconds))
-
 }
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
