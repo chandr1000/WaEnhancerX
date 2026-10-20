@@ -1,5 +1,6 @@
 package com.waenhancer.root
 
+import com.waenhancer.app.BuildConfig
 import com.waenhancer.app.R
 
 /**
@@ -375,6 +376,26 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_hma_force_stop_detail
             )
         )
+        // §6.5 debug-build-only "inject test command" affordance — owner-added 2026-10-20.
+        // Release builds exclude the entry entirely; the enforcement scanner guards this.
+        if (BuildConfig.DEBUG) {
+            put(
+                RootCommandSpec(
+                    id = "debug.echo",
+                    category = Category.DIAGNOSTICS,
+                    risk = RiskLevel.INFO,
+                    params = listOf(ParamSpec("text", ParamKind.BASE64_TEXT)),
+                    template = { p ->
+                        // The app Base64.NO_WRAP-encodes the user's text, so no metacharacter
+                        // can reach the shell. The output is the decoded original text.
+                        "echo " + p["text"] + " | base64 -d"
+                    },
+                    outputPolicy = OutputPolicy.RawTextCapped,
+                    timeoutMs = 4_000L,
+                    toggleable = true
+                )
+            )
+        }
     }
 
     fun spec(commandId: String): RootCommandSpec? = SPECS[commandId]

@@ -54,6 +54,8 @@ ALLOWED_COMMAND_IDS = {
     'hma.write_config',
     'hma.restore_config',
     'hma.force_stop',
+    # §6.5: debug-build-only entry; release builds exclude it via BuildConfig.DEBUG.
+    'debug.echo',
 }
 
 GOLDEN_TEMPLATES = {
@@ -95,6 +97,7 @@ PRIVATE_RUNTIME_KEYS = [
     'rootop_enabled_hma_write_config',
     'rootop_enabled_hma_restore_config',
     'rootop_enabled_hma_force_stop',
+    'rootop_enabled_debug_echo',
     'root_audit_log_enabled',
     'root_consent_reviewed',
 ]
@@ -224,6 +227,39 @@ def check_toggle_keys_cover_registry() -> list[str]:
     return failures
 
 
+def check_debug_echo_debug_guarded() -> list[str]:
+    """The debug.echo spec must be registered inside an `if (BuildConfig.DEBUG)` guard."""
+    registry = (APP / 'com/waenhancer/root/RootCommandRegistry.kt').read_text(
+        encoding='utf-8', errors='replace')
+    failures: list[str] = []
+    if 'id = "debug.echo"' not in registry:
+        failures.append('debug.echo: spec not registered in RootCommandRegistry')
+        return failures
+    # Find the spec block and verify it sits inside a BuildConfig.DEBUG guard.
+    spec_index = registry.index('id = "debug.echo"')
+    # Look backwards from the spec for the nearest if (BuildConfig.DEBUG)
+    preceding = registry[:spec_index]
+    last_buildconfig_if = preceding.rfind('if (BuildConfig.DEBUG)')
+    last_close = preceding.rfind('}')
+    if last_buildconfig_if == -1 or last_close > last_buildconfig_if:
+        failures.append('debug.echo: spec must be registered inside `if (BuildConfig.DEBUG)`')
+    # Verify the literal "debug.echo" appears only at debug call sites or the registry.
+    for path in APP.rglob('*'):
+        if not path.is_file() or path.suffix not in {'.java', '.kt'}:
+            continue
+        rel = str(path.relative_to(ROOT))
+        if rel == 'app/src/main/java/com/waenhancer/root/RootCommandRegistry.kt':
+            continue
+        if rel == 'app/src/main/java/com/waenhancer/ui/screens/root/PrivilegedOperationsScreen.kt':
+            continue
+        if rel.startswith('qa/'):
+            continue
+        text = path.read_text(encoding='utf-8', errors='replace')
+        if '"debug.echo"' in text or 'id = "debug.echo"' in text:
+            failures.append(f'{rel}: debug.echo literal only allowed in registry + UI')
+    return failures
+
+
 def main() -> int:
     failures: list[str] = []
 
@@ -244,6 +280,7 @@ def main() -> int:
     failures.extend(check_schema_keys())
     failures.extend(check_golden_templates_in_registry())
     failures.extend(check_toggle_keys_cover_registry())
+    failures.extend(check_debug_echo_debug_guarded())
 
     if failures:
         print('FAIL: root registry enforcement scanner', file=sys.stderr)

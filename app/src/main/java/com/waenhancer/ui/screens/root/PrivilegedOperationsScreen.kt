@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,16 +32,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.waenhancer.app.BuildConfig
 import com.waenhancer.app.R
 import com.waenhancer.root.Category
+import com.waenhancer.root.RegisteredRootRunner
 import com.waenhancer.root.RootAuditLog
 import com.waenhancer.root.RootCommandRegistry
 import com.waenhancer.root.RootCommandSpec
 import com.waenhancer.root.RootGate
+import com.waenhancer.root.RootResult
 import com.waenhancer.root.RiskLevel
 import com.waenhancer.ui.components.StitchSwitch
 import com.waenhancer.ui.components.WaexSectionHeader
-import com.waenhancer.ui.components.WaexStatusChip
 import com.waenhancer.ui.components.WaexTopBar
 import com.waenhancer.ui.designsystem.WaexIcons
 import com.waenhancer.ui.designsystem.WaexTheme
@@ -94,6 +98,58 @@ fun PrivilegedOperationsScreen() {
                     )
                 }
             }
+            if (BuildConfig.DEBUG) {
+                item(key = "debug_section") { DebugEchoPanel() }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DebugEchoPanel() {
+    var input by remember { mutableStateOf("") }
+    var resultText by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    Column(modifier = Modifier.padding(16.dp)) {
+        WaexSectionHeader(title = stringResource(R.string.rootop_debug_section_title))
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = input,
+            onValueChange = { input = it },
+            label = { Text(stringResource(R.string.rootop_debug_input_hint)) },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = {
+                val b64 = android.util.Base64.encodeToString(
+                    input.toByteArray(Charsets.UTF_8),
+                    android.util.Base64.NO_WRAP
+                )
+                val result = RegisteredRootRunner.run(
+                    "debug.echo",
+                    mapOf("text" to b64),
+                    "debug"
+                )
+                resultText = when (result) {
+                    is RootResult.Completed -> "Completed: ${result.output}"
+                    is RootResult.Success -> "Success (empty output)"
+                    is RootResult.Blocked -> "Blocked: ${result.reason}"
+                    is RootResult.Failed -> "Failed: ${result.kind}"
+                }
+            },
+            enabled = RootGate.isEnabled("debug.echo"),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.rootop_debug_run))
+        }
+        if (resultText.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.rootop_debug_result) + ": " + resultText,
+                style = WaexTheme.typography.bodySm,
+                color = WaexTheme.colors.onSurfaceVariant
+            )
         }
     }
 }

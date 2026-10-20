@@ -125,4 +125,10 @@
     <string name="rootop_last_run_summary">Last run %1$s ago</string>
     <string name="rootop_never_run">Never run this session</string>
     <string name="rootop_run_count">%1$d run%2$s this session</string>
+
+    <!-- Debug-build-only "inject test command" affordance (§6.5) -->
+    <string name="rootop_debug_section_title">Developer tools</string>
+    <string name="rootop_debug_input_hint">Text to echo through the registry (debug only)</string>
+    <string name="rootop_debug_run">Run test command</string>
+    <string name="rootop_debug_result">Result</string>
 </resources>

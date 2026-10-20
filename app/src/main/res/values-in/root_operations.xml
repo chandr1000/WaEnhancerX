@@ -124,4 +124,10 @@
     <string name="rootop_last_run_summary">Terakhir dijalankan %1$s lalu</string>
     <string name="rootop_never_run">Belum pernah dijalankan sesi ini</string>
     <string name="rootop_run_count">%1$d kali dijalankan sesi ini%2$s</string>
+
+    <!-- Debug-build-only "inject test command" affordance (§6.5) -->
+    <string name="rootop_debug_section_title">Alat pengembang</string>
+    <string name="rootop_debug_input_hint">Teks yang akan di-echo lewat registri (debug saja)</string>
+    <string name="rootop_debug_run">Jalankan perintah uji</string>
+    <string name="rootop_debug_result">Hasil</string>
 </resources>
