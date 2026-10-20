@@ -251,9 +251,8 @@ private fun PrivilegedOperationsEntryCard(nav: com.waenhancer.ui.navigation.Waex
     val typography = WaexTheme.typography
     val radius = WaexTheme.radius
     val total = remember { RootCommandRegistry.all().size }
-    // Read toggle state reactively from RootGate.state (Compose-observable SnapshotStateMap)
-    // so the count recomposes when toggles change on the Privileged Operations screen.
-    val disabled = RootCommandRegistry.all().count { it.toggleable && RootGate.state[it.id] == false }
+    // Read toggle state reactively so the count recomposes when toggles change.
+    val disabled = RootCommandRegistry.all().count { it.toggleable && !RootGate.isEnabledState(it.id) }
     Surface(
         shape = radius.bentoCardShape,
         color = colors.surfaceContainerLow,

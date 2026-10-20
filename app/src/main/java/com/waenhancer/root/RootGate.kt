@@ -55,6 +55,20 @@ object RootGate {
         return state[commandId] ?: true
     }
 
+    /**
+     * Compose-observable read for use inside @Composable functions. Reading
+     * [state] directly couples the UI to the SnapshotStateMap storage; this
+     * helper shields callers from the representation and triggers recomposition
+     * when the toggle changes.
+     */
+    @androidx.compose.runtime.Composable
+    fun isEnabledState(commandId: String): Boolean {
+        val spec = RootCommandRegistry.spec(commandId)
+        if (spec != null && !spec.toggleable) return true
+        if (spec == null) return false
+        return state[commandId] ?: true
+    }
+
     fun setEnabled(context: Context, commandId: String, enabled: Boolean) {
         val spec = RootCommandRegistry.spec(commandId) ?: return
         if (!spec.toggleable) return

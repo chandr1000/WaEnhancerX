@@ -155,7 +155,7 @@ private fun DebugEchoPanel() {
                     withContext(Dispatchers.Main) { resultText = text }
                 }
             },
-            enabled = RootGate.isEnabled("debug.echo"),
+            enabled = RootGate.isEnabledState("debug.echo"),
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(stringResource(R.string.rootop_debug_run))
@@ -175,8 +175,8 @@ private fun DebugEchoPanel() {
 private fun RootOperationRow(spec: RootCommandSpec, lastRunSummary: String) {
     val context = LocalContext.current
     val nav = LocalWaexNavController.current
-    // Read toggle state reactively from RootGate.state (Compose-observable SnapshotStateMap).
-    val enabled = if (!spec.toggleable) true else RootGate.state[spec.id] ?: true
+    // Read toggle state reactively via the Compose-observable helper.
+    val enabled = if (!spec.toggleable) true else RootGate.isEnabledState(spec.id)
     var checked by remember(spec.id, enabled) { mutableStateOf(enabled) }
 
     Row(
