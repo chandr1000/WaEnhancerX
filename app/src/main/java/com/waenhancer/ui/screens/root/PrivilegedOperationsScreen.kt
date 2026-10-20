@@ -180,16 +180,6 @@ private fun RootOperationRow(spec: RootCommandSpec, lastRunSummary: String) {
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 RiskChip(risk = spec.risk)
-                Spacer(modifier = Modifier.size(8.dp))
-                if (spec.toggleable) {
-                    Text(
-                        text = if (enabled) stringResource(R.string.rootop_enabled_by_you)
-                        else stringResource(R.string.rootop_disabled_by_you),
-                        style = WaexTheme.typography.bodySm,
-                        color = if (enabled) WaexTheme.colors.onSurfaceVariant
-                        else WaexTheme.colors.error
-                    )
-                }
             }
             if (spec.descriptionRes != 0) {
                 Text(
@@ -207,6 +197,16 @@ private fun RootOperationRow(spec: RootCommandSpec, lastRunSummary: String) {
                     modifier = Modifier.padding(top = 2.dp)
                 )
             }
+            if (!spec.toggleable) {
+                // Required-entry text placed inside the weighted Column so the row's
+                // title/description/lastRunSummary get enough width to render horizontally.
+                Text(
+                    text = stringResource(R.string.rootop_detail_required_entry),
+                    style = WaexTheme.typography.bodySm,
+                    color = WaexTheme.colors.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
         if (spec.toggleable) {
             StitchSwitch(
@@ -215,13 +215,6 @@ private fun RootOperationRow(spec: RootCommandSpec, lastRunSummary: String) {
                     checked = value
                     RootGate.setEnabled(context, spec.id, value)
                 }
-            )
-        } else {
-            Text(
-                text = stringResource(R.string.rootop_detail_required_entry),
-                style = WaexTheme.typography.bodySm,
-                color = WaexTheme.colors.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp, end = 4.dp)
             )
         }
     }

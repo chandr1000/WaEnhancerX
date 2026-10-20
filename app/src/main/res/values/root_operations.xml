@@ -105,8 +105,6 @@
     <string name="rootop_risk_info">Info</string>
     <string name="rootop_risk_low">Low</string>
     <string name="rootop_risk_high">High</string>
-    <string name="rootop_enabled_by_you">Enabled</string>
-    <string name="rootop_disabled_by_you">Disabled by you</string>
     <string name="rootop_detail_when_it_runs">When it runs</string>
     <string name="rootop_detail_when_off">What happens when turned off</string>
     <string name="rootop_detail_parameters">Parameters &amp; validation</string>

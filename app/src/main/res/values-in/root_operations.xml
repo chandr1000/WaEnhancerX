@@ -104,8 +104,6 @@
     <string name="rootop_risk_info">Info</string>
     <string name="rootop_risk_low">Rendah</string>
     <string name="rootop_risk_high">Tinggi</string>
-    <string name="rootop_enabled_by_you">Diaktifkan</string>
-    <string name="rootop_disabled_by_you">Dinonaktifkan oleh Anda</string>
     <string name="rootop_detail_when_it_runs">Kapan dijalankan</string>
     <string name="rootop_detail_when_off">Yang terjadi saat dinonaktifkan</string>
     <string name="rootop_detail_parameters">Parameter &amp; validasi</string>
