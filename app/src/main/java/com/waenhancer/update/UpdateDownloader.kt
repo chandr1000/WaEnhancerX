@@ -183,12 +183,13 @@ object UpdateDownloader {
             val result: String? = try {
                 run {
                     // Step 1: mktemp — staging path is a DERIVED_OUTPUT for the next steps.
+                    if (!RootFlowConsent.isStepEnabled("update.mktemp")) return@run UiText.get(R.string.rootop_toast_step_blocked, "Step \"%1\$s\" was skipped: disabled by you", "mktemp")
                     val mktempResult = RegisteredRootRunner.run("update.mktemp", callerTag = "update")
                     val mktempPath = (mktempResult as? RootResult.Completed)?.output?.trim()
                     if (mktempPath == null) return@run "Unable to obtain a private installation temporary file"
                     staging = mktempPath
                     // Re-check immediately before the copy step (TOCTOU guard).
-                    if (!RootFlowConsent.isStepEnabled("update.copy")) return@run "Step \"copy\" was skipped: disabled by you"
+                    if (!RootFlowConsent.isStepEnabled("update.copy")) return@run UiText.get(R.string.rootop_toast_step_blocked, "Step \"%1\$s\" was skipped: disabled by you", "copy")
 
                     // Step 2: copy + verify byte count.
                     val copyParams = mapOf(
@@ -202,7 +203,7 @@ object UpdateDownloader {
                         return@run if (copyOutput.isNullOrEmpty()) "Failed to copy verified APK to temporary storage"
                         else "Failed to copy verified APK: $copyOutput"
                     }
-                    if (!RootFlowConsent.isStepEnabled("update.install")) return@run "Step \"install\" was skipped: disabled by you"
+                    if (!RootFlowConsent.isStepEnabled("update.install")) return@run UiText.get(R.string.rootop_toast_step_blocked, "Step \"%1\$s\" was skipped: disabled by you", "install")
 
                     // Step 3: pm install.
                     val installParams = mapOf("target" to mktempPath)

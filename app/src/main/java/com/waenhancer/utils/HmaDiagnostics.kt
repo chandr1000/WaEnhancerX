@@ -461,7 +461,11 @@ object HmaDiagnostics {
                     RootParamPolicy.HMA_WRITE_OK.matcher(it).matches()
                 } ?: false
                 val verifiedJson = if (writeOk) {
-                    readHmaConfig(configPath)
+                    if (!RootFlowConsent.isStepEnabled("hma.read_config")) {
+                        postToast(context, UiText.get(R.string.rootop_toast_step_blocked,
+                            "Step \"%1\$s\" was skipped: disabled by you", "verify"))
+                        null
+                    } else readHmaConfig(configPath)
                 } else null
                 val verified = try {
                     val parsed = JSONObject(verifiedJson ?: "")
