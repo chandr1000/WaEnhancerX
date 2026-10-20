@@ -1,29 +1,26 @@
 [Added]
-- Added support upto version 2.26.42.xx
-- Added support for switching between debug and release
-- Added HMA detection in diagnosis
-- Added interface size options in module settings to update the controls size
-- Added Status/Stories Style
+- Added Root Command Registry: 20 compiled-in, immutable root operation specs
+  across 4 categories (Restart, Update, Diagnostics, HMA Repair)
+- Added Privileged Operations screen (System Health → entry card) with per-command
+  toggles, risk chips, last-run summary, and detail view
+- Added Root Audit Log (RAM-only, 200 entries, 200-char output preview, cleared on exit)
+- Added consent onboarding: capability review shown before the first su probe
+- Added Bahasa Indonesia translations for all root-operation strings (values-in/)
+- Added debug-build-only "debug.echo" Developer Tools panel (BuildConfig.DEBUG-guarded)
+- Raised root.probe.id timeout 4s → 20s (R6 fix: interactive grant latency)
+- Raised hma.write_config timeout 4s → 8s (R9 fix: mid-write race window halved)
+- Added per-command kill-switch persisted in private_config (never waex_prefs)
+- Added enforcement scanner: exactly one ProcessBuilder("su") site (RootEngine)
 
 [Fixes]
-- Fixed missing texts or resources from category titles or descriptions
-- Fixed some menu icons were not visible in release mode
-- Fixed showing unreleated apps in home list
-- Fixed Hide Forwarded
-- Fixed Filter Item by ID
-- Fixed chat screen ui lags
-- Fixed version compatibility bug
-- Fixed Delete for me messages not saving + improvements
-- Fixed Disable Pinned chat limit
+- R1: hma.read_config now validates PATH_STRICT + uses head -c 262144 (no shell injection)
+- R3: hma.force_stop now validates PACKAGE_NAME + HMA allowlist (no unquoted interpolation)
+- R5: all root operations audited (including blocked attempts)
+- R7: root.probe.id uses shared ROOT_ID regex (no substring "uid=0" matching)
+- Deleted raw doors: AppRestartHelper.runRootCommand and RootCommandRunner shim removed
 
 [Improvements]
-- Improved Call recorder
-- Improved System Diagnosis
 
 [New Languages]
-- Chinese (Thanks to @wilsonmilson)
-- Turkish
-- Slovenian (Thanks to @damjang)
 
 [Community contribution]
-- Thanks to @TheKillerMax for valuable contributions in this update.

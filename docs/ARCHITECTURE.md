@@ -93,3 +93,30 @@ feature-acceptance matrix. Future modularization, encrypted storage or a plugin
 API should be proposed explicitly, with code and migration work, before being
 described as shipped behavior. Build prerequisites and supported test entry
 points belong in [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+## Root Command Registry
+
+`com.waenhancer.root` is a manager-realm package that provides the single public
+door to `su`: `RegisteredRootRunner.run(commandId, params, callerTag)`. Every
+root operation is a compiled-in, immutable `RootCommandSpec` in `RootCommandRegistry`
+(20 entries across 4 categories: RESTART, UPDATE, DIAGNOSTICS, HMA_REPAIR).
+
+The gate sequence is: registry lookup → `RootGate.isEnabled` (per-command toggle
+in `private_config`) → `RootParamPolicy.validate` (positive allowlist: PACKAGE_NAME,
+PATH_STRICT, BASE64_TEXT) → `spec.template` (defensive quoting inside) →
+`RootEngine.exec` (the bounded kernel, ported 1:1 from the original
+`RootCommandRunner`) → `OutputPolicy.check` → `RootAuditLog.record`.
+
+Blocked attempts are audited too. The audit log is a RAM-only ring buffer
+(200 entries, 200-char output preview, cleared on process death).
+
+Per-command toggles live in `private_config` (MODE_PRIVATE, module UID only),
+never in the world-readable `waex_prefs`. They are registered in
+`PreferenceSchema` with `Sensitivity.RUNTIME` so a settings backup cannot
+silently re-enable a root capability the user disabled.
+
+The original raw doors (`AppRestartHelper.runRootCommand` and `RootCommandRunner`)
+are deleted; exactly one `ProcessBuilder("su"` site remains: `RootEngine.SU_STARTER`.
+The enforcement scanner (`qa/test_root_registry_enforcement.py`) makes this structural.
+
+See `qa/ROOT_REGISTRY_ACCEPTANCE.md` for the on-device manual acceptance matrix.

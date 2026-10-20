@@ -19,6 +19,9 @@ These checks are **diagnostics**, not evidence that WhatsApp hooks are working. 
 | `test_hook_return_types.py` | Python 3 and JDK | Hook return/parameter contract checks |
 | `test_host_class_relocations.py` | Python 3 and a **locally supplied** WhatsApp APK | Exact host class definitions for a known version (expected to change across WhatsApp releases) |
 | `test_monet_wiring.py` | Python 3 | Source-level dynamic-theme wiring, not UI instrumentation |
+| `test_root_registry_contract.py` | Python 3 and JDK 17+ | JDK-only security contract: R1 PoC payload, param validation, quoting goldens, output-policy matrix, `RootEngine.execResult` tri-state |
+| `test_root_registry_enforcement.py` | Python 3 | Source-text enforcement scanner: exactly one `ProcessBuilder("su")` site, literal command ids, `RootGate` uses `privateStore`, schema keys are `RUNTIME/PRIVATE`, backups exclude `rootop_*`, `debug.echo` is `BuildConfig.DEBUG`-guarded |
+| `test_rootop_strings.py` | Python 3 | String-parity scanner: EN/ID key-set equality, registry-spec ↔ string parity, full format-arg set parity, every `rootop_*` key referenced from code, no unescaped apostrophes |
 
 Other tests introduced by still-open PRs are not part of upstream `main` until merged. Do not assume that unmerged scripts are available from this branch.
 

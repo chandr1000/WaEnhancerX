@@ -42,3 +42,31 @@ WAEX operates as an Android application with hook extensions (such as Xposed/LSP
 - We prioritize user data integrity, privacy, and prevention of unintended privilege escalation.
 - We do not store or transmit sensitive communication data externally without explicit user authorization.
 - All dependencies are audited regularly for known CVEs.
+
+## Root Command Registry
+
+All root operations flow through a single registered door: `RegisteredRootRunner.run`.
+There is exactly one `ProcessBuilder("su"` site in the codebase (`RootEngine.SU_STARTER`),
+enforced by the `qa/test_root_registry_enforcement.py` scanner.
+
+- **Parameter validation is positive (allowlist), not escaping-based.** `PATH_STRICT`
+  rejects `$`, backticks, quotes, `;`, `&`, `|`, `( )`, whitespace; `PACKAGE_NAME`
+  uses a strict regex; `BASE64_TEXT` validates the Base64 alphabet.
+- **Per-command kill-switch** toggles live in `private_config` (MODE_PRIVATE, module
+  UID only), never in the world-readable `waex_prefs`. They are `Sensitivity.RUNTIME`
+  so a settings backup cannot silently re-enable a root capability the user disabled.
+- **The audit log is RAM-only** — 200-entry ring buffer, 200-char output preview,
+  cleared on process death. A persisted root log on a rooted device would be readable
+  by anything with root, which would invert the feature's purpose.
+- **Logging is a privacy control for the user, not a security control over WAEX.**
+  Disabling the audit log means the *user* loses visibility; it does not (and cannot)
+  reduce what the app may execute.
+
+### Honest limitations
+
+A compromised manager process (code execution inside `com.waenhancer` via another
+Xposed module, Frida, or a malicious dependency) can still invoke any *registered*
+command with any *valid* parameters. The registry shrinks the blast radius from
+"arbitrary shell" to 20 vetted operations — a massive improvement, but not zero.
+The su manager remains the real security boundary; the registry governs *what the
+app will ask for*, not *what the device will allow*.

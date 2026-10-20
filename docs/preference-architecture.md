@@ -122,3 +122,21 @@ Read each suite's declared scope. Local doubles, real Android framework fixtures
 a signed APK and a device running an injected host establish different things.
 Do not repair a read mismatch by silently clearing preferences or overwriting the
 user's settings with defaults.
+
+## Root Command Registry keys
+
+Per-command kill-switch toggles (`rootop_enabled_*`) and the audit-log + consent
+flags (`root_audit_log_enabled`, `root_consent_reviewed`) are registered in
+`PreferenceSchema` with `Sensitivity.RUNTIME` + `Store.PRIVATE`. This means:
+
+- They live in `private_config` (MODE_PRIVATE, module UID only), never in the
+  world-readable `waex_prefs`.
+- They are **never exported** in a settings backup — a restore cannot silently
+  re-enable a root capability the user disabled.
+- They are loaded once at app startup (`RootGate.load` in `WaexApp.onCreate`)
+  into a Compose-observable `SnapshotStateMap` so UI toggles recompose reactively.
+
+The enforcement scanner (`qa/test_root_registry_enforcement.py`) verifies that
+`RootGate` calls `PreferenceStores.privateStore` (not `publicStore`) at every
+access point, and that no `rootop_*` key is registered with an exportable
+sensitivity.

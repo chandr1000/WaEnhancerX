@@ -321,6 +321,29 @@ def check_debug_echo_debug_guarded() -> list[str]:
     return failures
 
 
+def check_backup_excludes_rootop_keys() -> list[str]:
+    """No rootop_enabled_* / root_audit_log_enabled / root_consent_reviewed key may be
+    registered with Sensitivity.PUBLIC_SETTING or PRIVATE_SETTING (which are
+    exportable). They must be Sensitivity.RUNTIME (never exported)."""
+    failures: list[str] = []
+    schema = (APP / 'com/waenhancer/config/PreferenceSchema.java').read_text(
+        encoding='utf-8', errors='replace')
+    # Find every rootop_* or root_* key and check its sensitivity.
+    pattern = re.compile(
+        r'add\(entries,\s*"(rootop_enabled_[^"]+|root_audit_log_enabled|root_consent_reviewed)",'
+        r'\s*Type\.\w+,\s*Sensitivity\.(\w+),\s*Store\.(\w+)\)'
+    )
+    for match in pattern.finditer(schema):
+        key, sensitivity, store = match.group(1), match.group(2), match.group(3)
+        if sensitivity in ('PUBLIC_SETTING', 'PRIVATE_SETTING'):
+            failures.append(
+                f'{key}: sensitivity={sensitivity} (must be RUNTIME so backups cannot '
+                f'silently re-enable a root capability)')
+        if store != 'PRIVATE':
+            failures.append(f'{key}: store={store} (must be PRIVATE)')
+    return failures
+
+
 def main() -> int:
     failures: list[str] = []
 
@@ -340,6 +363,7 @@ def main() -> int:
     failures.extend(check_no_root_imports_in_xposed_features())
     failures.extend(check_root_command_runner_deprecated())
     failures.extend(check_schema_keys())
+    failures.extend(check_backup_excludes_rootop_keys())
     failures.extend(check_golden_templates_in_registry())
     failures.extend(check_toggle_keys_cover_registry())
     failures.extend(check_debug_echo_debug_guarded())
