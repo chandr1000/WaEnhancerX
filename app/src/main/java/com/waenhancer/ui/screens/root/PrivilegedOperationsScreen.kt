@@ -26,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +52,9 @@ import com.waenhancer.ui.designsystem.WaexIcons
 import com.waenhancer.ui.designsystem.WaexTheme
 import com.waenhancer.ui.navigation.LocalWaexNavController
 import com.waenhancer.ui.navigation.Screen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun PrivilegedOperationsScreen() {
@@ -112,6 +116,7 @@ private fun DebugEchoPanel() {
     var input by remember { mutableStateOf("") }
     var resultText by remember { mutableStateOf("") }
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     Column(modifier = Modifier.padding(16.dp)) {
         WaexSectionHeader(title = stringResource(R.string.rootop_debug_section_title))
         Spacer(modifier = Modifier.height(8.dp))
@@ -128,16 +133,19 @@ private fun DebugEchoPanel() {
                     input.toByteArray(Charsets.UTF_8),
                     android.util.Base64.NO_WRAP
                 )
-                val result = RegisteredRootRunner.run(
-                    "debug.echo",
-                    mapOf("text" to b64),
-                    "debug"
-                )
-                resultText = when (result) {
-                    is RootResult.Completed -> "Completed: ${result.output}"
-                    is RootResult.Success -> "Success (empty output)"
-                    is RootResult.Blocked -> "Blocked: ${result.reason}"
-                    is RootResult.Failed -> "Failed: ${result.kind}"
+                scope.launch(Dispatchers.IO) {
+                    val result = RegisteredRootRunner.run(
+                        "debug.echo",
+                        mapOf("text" to b64),
+                        "debug"
+                    )
+                    val text = when (result) {
+                        is RootResult.Completed -> "Completed: ${result.output}"
+                        is RootResult.Success -> "Success (empty output)"
+                        is RootResult.Blocked -> "Blocked: ${result.reason}"
+                        is RootResult.Failed -> "Failed: ${result.kind}"
+                    }
+                    withContext(Dispatchers.Main) { resultText = text }
                 }
             },
             enabled = RootGate.isEnabled("debug.echo"),
