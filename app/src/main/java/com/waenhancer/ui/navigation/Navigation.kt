@@ -1035,6 +1035,9 @@ fun WaexAppNavigation(
         Screen.ManageDevices -> ManageDevicesScreen()
         Screen.FloatingBottomBarCustomizer -> FloatingBottomBarCustomizerScreen()
         Screen.FilterItems -> FilterItemsScreen()
+        Screen.PrivilegedOperations -> com.waenhancer.ui.screens.root.PrivilegedOperationsScreen()
+        Screen.RootAuditLog -> com.waenhancer.ui.screens.root.RootAuditLogScreen()
+        is Screen.RootCommandDetail -> com.waenhancer.ui.screens.root.RootCommandDetailScreen(commandId = currentScreen.commandId)
         is Screen.InjectedHooks -> InjectedHooksScreen(packageName = currentScreen.packageName, appName = currentScreen.appName)
     }
 }

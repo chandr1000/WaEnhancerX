@@ -28,6 +28,9 @@ sealed class Screen(val route: String) {
     object ManageDevices : Screen("manage_devices")
     object FloatingBottomBarCustomizer : Screen("floating_bottom_bar_customizer")
     object FilterItems : Screen("filter_items")
+    object PrivilegedOperations : Screen("privileged_operations")
+    object RootAuditLog : Screen("root_audit_log")
+    data class RootCommandDetail(val commandId: String) : Screen("root_command_detail/$commandId")
     data class InjectedHooks(val packageName: String, val appName: String) : Screen("injected_hooks/$packageName")
 }
 
