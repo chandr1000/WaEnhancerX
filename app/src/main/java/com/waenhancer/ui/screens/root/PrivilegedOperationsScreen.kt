@@ -95,7 +95,7 @@ fun PrivilegedOperationsScreen() {
                 items(categorySpecs, key = { it.id }) { spec ->
                     RootOperationRow(
                         spec = spec,
-                        lastRunSummary = lastRunSummaryFor(spec.id, auditEntries.size)
+                        lastRunSummary = lastRunSummaryFor(spec.id, auditEntries)
                     )
                 }
             }
@@ -159,10 +159,9 @@ private fun DebugEchoPanel() {
 private fun RootOperationRow(spec: RootCommandSpec, lastRunSummary: String) {
     val context = LocalContext.current
     val nav = LocalWaexNavController.current
-    val enabled = remember(spec.id) {
-        if (!spec.toggleable) true else RootGate.isEnabled(spec.id)
-    }
-    var checked by remember(spec.id) { mutableStateOf(enabled) }
+    // Read toggle state reactively from RootGate.state (Compose-observable SnapshotStateMap).
+    val enabled = if (!spec.toggleable) true else RootGate.state[spec.id] ?: true
+    var checked by remember(spec.id, enabled) { mutableStateOf(enabled) }
 
     Row(
         modifier = Modifier
@@ -180,6 +179,16 @@ private fun RootOperationRow(spec: RootCommandSpec, lastRunSummary: String) {
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 RiskChip(risk = spec.risk)
+                Spacer(modifier = Modifier.size(8.dp))
+                if (spec.toggleable) {
+                    Text(
+                        text = if (enabled) stringResource(R.string.rootop_enabled_by_you)
+                        else stringResource(R.string.rootop_disabled_by_you),
+                        style = WaexTheme.typography.bodySm,
+                        color = if (enabled) WaexTheme.colors.onSurfaceVariant
+                        else WaexTheme.colors.error
+                    )
+                }
             }
             if (spec.descriptionRes != 0) {
                 Text(
@@ -189,12 +198,14 @@ private fun RootOperationRow(spec: RootCommandSpec, lastRunSummary: String) {
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
-            Text(
-                text = lastRunSummary,
-                style = WaexTheme.typography.bodySm,
-                color = WaexTheme.colors.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp)
-            )
+            if (lastRunSummary.isNotEmpty()) {
+                Text(
+                    text = lastRunSummary,
+                    style = WaexTheme.typography.bodySm,
+                    color = WaexTheme.colors.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
         }
         if (spec.toggleable) {
             StitchSwitch(
@@ -244,8 +255,21 @@ private fun categoryTitle(category: Category): String = when (category) {
     Category.HMA_REPAIR -> stringResource(R.string.rootop_category_hma)
 }
 
-private fun lastRunSummaryFor(commandId: String, totalEntries: Int): String {
-    if (totalEntries == 0) return ""
-    // Lightweight: just count entries for this command in the current buffer.
-    return "• $commandId"
+private fun lastRunSummaryFor(
+    commandId: String,
+    entries: List<RootAuditLog.Entry>
+): String {
+    if (entries.isEmpty()) return ""
+    val matching = entries.filter { it.commandId == commandId }
+    if (matching.isEmpty()) return ""
+    val count = matching.size
+    val mostRecent = matching.last()
+    val ageMs = System.currentTimeMillis() - mostRecent.epochMs
+    val ageText = when {
+        ageMs < 60_000 -> "${ageMs / 1000}s"
+        ageMs < 3_600_000 -> "${ageMs / 60_000}min"
+        else -> "${ageMs / 3_600_000}h"
+    }
+    val plural = if (count == 1) "" else "s"
+    return "$count run$plural · last $ageText ago"
 }
