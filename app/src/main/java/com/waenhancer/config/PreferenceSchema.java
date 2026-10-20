@@ -311,6 +311,14 @@ public final class PreferenceSchema {
         add(entries, "restartbutton", Type.BOOLEAN, Sensitivity.PUBLIC_SETTING, Store.PUBLIC);
         add(entries, "revokeallmessages", Type.BOOLEAN, Sensitivity.PUBLIC_SETTING, Store.PUBLIC);
         add(entries, "root_auto_install", Type.BOOLEAN, Sensitivity.PRIVATE_SETTING, Store.PRIVATE);
+        // Root Command Registry toggles live in private_config so a settings backup
+        // can never silently re-enable a capability the user disabled.
+        add(entries, "rootop_enabled_restart_target_force_stop", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_restart_target_launch", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_diag_process_pidof", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_diag_selinux_getenforce", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "root_audit_log_enabled", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "root_consent_reviewed", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "secondstotime", Type.STRING, Sensitivity.PUBLIC_SETTING, Store.PUBLIC);
         add(entries, "seentick", Type.STRING, Sensitivity.PUBLIC_SETTING, Store.PUBLIC);
         add(entries, "segundos", Type.BOOLEAN, Sensitivity.PUBLIC_SETTING, Store.PUBLIC);

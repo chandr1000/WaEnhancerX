@@ -10,6 +10,7 @@ import com.waenhancer.config.FeatureCatalog
 import dagger.hilt.android.HiltAndroidApp
 import android.content.Context
 import com.waenhancer.licensing.features.BootloaderSpooferFeature
+import com.waenhancer.root.RootGate
 import com.waenhancer.utils.LocaleHelper
 import com.waenhancer.utils.WhatsAppPackageDetector
 
@@ -40,6 +41,7 @@ class WaexApp : Application() {
             edit().putString("wae_version_name", installedVersion).apply()
         }
         BootloaderSpooferFeature.syncDefaultKeyboxAsync(this)
+        RootGate.load(this)
     }
 
     private fun notifyHookedPackages(changedKey: String?) {
