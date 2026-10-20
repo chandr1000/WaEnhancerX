@@ -34,16 +34,19 @@ object RootGate {
     /** Load every toggle value from private_config. Call from `Application.onCreate`. */
     fun load(context: Context) {
         val store = PreferenceStores.privateStore(context)
-        // Build a local snapshot then swap atomically so concurrent isEnabled
-        // reads never observe a partially-cleared map.
+        // Build a local snapshot then apply atomically inside a single snapshot
+        // scope so concurrent isEnabled reads never observe an empty intermediate.
         val incoming = HashMap<String, Boolean>()
         for (spec in RootCommandRegistry.all()) {
             if (!spec.toggleable) continue
             incoming[spec.id] = store.getBoolean(keyFor(spec.id), true)
         }
-        state.clear()
-        state.putAll(incoming)
-        auditLogEnabled.value = store.getBoolean(KEY_AUDIT_LOG_ENABLED, true)
+        val auditValue = store.getBoolean(KEY_AUDIT_LOG_ENABLED, true)
+        androidx.compose.runtime.snapshots.Snapshot.withMutableSnapshot {
+            state.clear()
+            state.putAll(incoming)
+            auditLogEnabled.value = auditValue
+        }
     }
 
     fun isEnabled(commandId: String): Boolean {

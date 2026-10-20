@@ -70,11 +70,22 @@ object RegisteredRootRunner {
         for (param in spec.params) {
             if (param.kind == ParamKind.CONSTANT) continue
             if (param.repeated) {
+                // Repeated params arrive as a single newline-joined string; validate
+                // each element against the kind-specific validator before accepting.
                 val raw = params[param.name]
                 if (param.required && raw.isNullOrBlank()) {
                     throw IllegalArgumentException("missing repeated param: ${param.name}")
                 }
-                if (raw != null) validated[param.name] = raw
+                if (raw != null) {
+                    if (param.kind == ParamKind.PACKAGE_NAME) {
+                        raw.split("\n").filter { it.isNotBlank() }.forEach { elem ->
+                            if (!RootParamPolicy.isValidPackageName(elem)) {
+                                throw IllegalArgumentException("invalid PACKAGE_NAME in repeated param: ${param.name}")
+                            }
+                        }
+                    }
+                    validated[param.name] = raw
+                }
                 continue
             }
             val raw = params[param.name]
