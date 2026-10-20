@@ -45,7 +45,8 @@ enum class RootAccessState { Checking, AwaitingGrant, Required, Granted }
 fun RootAccessRequirementScreen(
     state: RootAccessState,
     onRetry: () -> Unit,
-    onExit: () -> Unit
+    onExit: () -> Unit,
+    onReviewCapabilities: (() -> Unit)? = null
 ) {
     BackHandler(onBack = onExit)
     val colors = WaexTheme.colors
@@ -186,6 +187,31 @@ fun RootAccessRequirementScreen(
                 style = typography.bodyMd,
                 color = colors.onSurface
             )
+        }
+
+        if (onReviewCapabilities != null) {
+            Spacer(modifier = Modifier.height(10.dp))
+            OutlinedButton(
+                onClick = onReviewCapabilities,
+                enabled = !checking,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = radius.lgShape,
+                border = BorderStroke(1.dp, colors.outlineVariant)
+            ) {
+                Icon(
+                    imageVector = WaexIcons.Security,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = UiText.get(R.string.rootop_consent_title, "Review what WAEX can do with root"),
+                    modifier = Modifier.padding(start = 8.dp),
+                    style = typography.bodyMd,
+                    color = colors.onSurface
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(8.dp))

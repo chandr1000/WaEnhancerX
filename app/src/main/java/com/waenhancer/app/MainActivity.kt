@@ -68,6 +68,7 @@ class MainActivity : ComponentActivity() {
     private var hasGrantedRootThisSession by mutableStateOf(false)
     private var initialRootResultProvided = false
     private var consentReviewed by mutableStateOf(false)
+    private var showConsentReviewFromRootScreen by mutableStateOf(false)
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -187,15 +188,19 @@ class MainActivity : ComponentActivity() {
                                     MainContainerScreen()
                                 }
                             }
-                            if (!consentReviewed) {
+                            if (!consentReviewed || showConsentReviewFromRootScreen) {
                                 RootConsentReviewScreen(
-                                    onContinue = { consentReviewed = true }
+                                    onContinue = {
+                                        consentReviewed = true
+                                        showConsentReviewFromRootScreen = false
+                                    }
                                 )
                             } else if (rootState != RootAccessState.Granted) {
                                 RootAccessRequirementScreen(
                                     state = rootState,
                                     onRetry = { rootCheckAttempt++ },
-                                    onExit = { finishAndRemoveTask() }
+                                    onExit = { finishAndRemoveTask() },
+                                    onReviewCapabilities = { showConsentReviewFromRootScreen = true }
                                 )
                             }
                         }
