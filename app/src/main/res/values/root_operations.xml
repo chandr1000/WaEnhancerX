@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 1. root.probe.id -->
+    <string name="rootop_root_probe_id_title">Root access check</string>
+    <string name="rootop_root_probe_id_desc">Verifies superuser access; triggers your root manager\'s grant prompt</string>
+    <string name="rootop_root_probe_id_detail">This check runs the `id` command as root. It is the moment your root manager (Magisk, KernelSU, APatch) shows its grant prompt. The check cannot be turned off because it is the consent mechanism itself: without it, no other entry can ask for root.</string>
+
+    <!-- 2. restart.target.force_stop -->
+    <string name="rootop_restart_target_force_stop_title">Force-stop target app</string>
+    <string name="rootop_restart_target_force_stop_desc">Kills the selected app\'s process, like Android\'s \"Force stop\". Unsaved in-app state is lost.</string>
+    <string name="rootop_restart_target_force_stop_detail">Runs `am force-stop` on the selected target. This kills the process; it does not relaunch it — relaunching is a separate entry. Only packages in the module\'s 45-app Xposed scope (plus `com.whatsapp` and `com.whatsapp.w4b`) are accepted; the module\'s own package is rejected. When disabled, WAEX falls back to a signed-broadcast restart that cannot verify the process actually died.</string>
+
+    <!-- 3. restart.target.launch -->
+    <string name="rootop_restart_target_launch_title">Relaunch target app</string>
+    <string name="rootop_restart_target_launch_desc">Opens the selected app</string>
+    <string name="rootop_restart_target_launch_detail">Runs Android\'s `monkey` launcher command against the selected target. Acceptance is verified by parsing the `Events injected: N` line — a missing line means launch failed and WAEX falls back to a standard launcher intent. Same scope validation as the force-stop entry.</string>
+
+    <!-- 4. update.mktemp -->
+    <string name="rootop_update_mktemp_title">Create staging file</string>
+    <string name="rootop_update_mktemp_desc">Creates an empty staging file in /data/local/tmp, used only for this install and deleted afterwards</string>
+    <string name="rootop_update_mktemp_detail">Runs `mktemp /data/local/tmp/waex.XXXXXX`. The returned path must match a strict regex (`^/data/local/tmp/waex\\.[A-Za-z0-9]+$`) before any later step may use it; an attacker-planted path is rejected. The file is owned by root and is deleted in the `finally` block of the install flow.</string>
+
+    <!-- 5. update.copy -->
+    <string name="rootop_update_copy_title">Stage update file</string>
+    <string name="rootop_update_copy_desc">Copies the verified update APK from WAEX\'s cache into the staging file and confirms the byte count matches</string>
+    <string name="rootop_update_copy_detail">Copies the downloaded APK from the app cache into the staging path returned by `mktemp`, then runs `wc -c` to confirm the byte count equals the source APK size. A size mismatch aborts the install before `pm install` runs. The staging path is treated as a `DERIVED_OUTPUT` — it can only come from the `mktemp` step\'s policy-passing output.</string>
+
+    <!-- 6. update.install -->
+    <string name="rootop_update_install_title">Install WAEX update</string>
+    <string name="rootop_update_install_desc">Installs the downloaded WAEX update, replacing the version currently installed. WAEX closes itself to finish.</string>
+    <string name="rootop_update_install_detail">Runs `pm install -r -d --user 0` on the staging file. `-r` replaces the existing install; `-d` also permits installing a lower versionCode (only used when you select an older release from the GitHub releases list). On success, WAEX kills its own process to finish the swap. On failure, the staging file is still cleaned up. The 70-second timeout survives an interactive root-manager prompt on slow devices.</string>
+
+    <!-- 7. update.cleanup -->
+    <string name="rootop_update_cleanup_title">Remove staging file</string>
+    <string name="rootop_update_cleanup_desc">Deletes the temporary staging file</string>
+    <string name="rootop_update_cleanup_detail">Runs `rm -f --` on the staging path in the install flow\'s `finally` block, whether the install succeeded or failed. Best-effort: a cleanup failure does not roll back a successful install.</string>
+
+    <!-- 8. diag.process.pidof -->
+    <string name="rootop_diag_process_pidof_title">Check running processes</string>
+    <string name="rootop_diag_process_pidof_desc">Reports whether each WhatsApp app is currently running (process IDs only)</string>
+    <string name="rootop_diag_process_pidof_detail">Runs a multi-line `pidof` script — one `pidof` call per scoped package — and emits a `PID|&lt;package&gt;|&lt;pids&gt;` line per target. A trailing `END|WAEX_PROCESS_SNAPSHOT` sentinel authenticates the output; truncated or polluted output is discarded. A running process is not proof of hook initialization — only that the process exists.</string>
+
+    <!-- 9. diag.selinux.getenforce -->
+    <string name="rootop_diag_selinux_getenforce_title">SELinux status</string>
+    <string name="rootop_diag_selinux_getenforce_desc">Reads the device\'s SELinux mode (Enforcing / Permissive / Disabled)</string>
+    <string name="rootop_diag_selinux_getenforce_detail">Runs `getenforce` as the third fallback after the `/sys/fs/selinux/enforce` read and the `android.os.SELinux` reflection path fail. Never triggers a fresh superuser request: this entry only runs when root has already been granted. Output is validated against the three canonical values.</string>
+
+    <!-- 10. hma.probe.zygisk -->
+    <string name="rootop_hma_probe_zygisk_title">Detect HMA (Zygisk)</string>
+    <string name="rootop_hma_probe_zygisk_desc">Looks inside /data/adb/modules for a Hide My Applist Zygisk module and whether it is enabled</string>
+    <string name="rootop_hma_probe_zygisk_detail">Checks the canonical Zygisk module path (`/data/adb/modules/hma_oss_zygisk`) and lists any other module directory whose name contains `hma`. An enabled module is reported as `active`. The probe is read-only.</string>
+
+    <!-- 11. hma.probe.lsposed_db -->
+    <string name="rootop_hma_probe_lsposed_db_title">Detect HMA (LSPosed)</string>
+    <string name="rootop_hma_probe_lsposed_db_desc">Copies LSPosed\'s module database to WAEX\'s cache, checks whether HMA is enabled in it, then deletes the copy</string>
+    <string name="rootop_hma_probe_lsposed_db_detail">Copies `/data/adb/lspd/config/modules_config.db` (plus its `-wal` and `-shm` siblings) into WAEX\'s cache directory, queries the local copy for an enabled HMA row, then deletes the copy. The cache copy is briefly world-readable (`chmod 666`) for the local SQLite read — this is why the entry is rated LOW, not INFO: the copied DB exposes the enabled-module list even though only HMA rows are queried.</string>
+
+    <!-- 12. hma.discover.packages -->
+    <string name="rootop_hma_discover_packages_title">List HMA-like packages</string>
+    <string name="rootop_hma_discover_packages_desc">Requests the full list of installed apps from the system, keeps only names that look like HMA variants</string>
+    <string name="rootop_hma_discover_packages_detail">Runs `pm list packages` and locally filters the result for package names whose lowercased form contains `hma`, `hidemyapp`, or ends with `.hmal`. Used both as a discovery probe and as the target list for the `hma.force_stop` entry.</string>
+
+    <!-- 13. hma.discover.find_configs -->
+    <string name="rootop_hma_discover_find_configs_title">Locate HMA configs</string>
+    <string name="rootop_hma_discover_find_configs_desc">Searches five system data folders for HMA\'s config.json files and collects their paths (read-only)</string>
+    <string name="rootop_hma_discover_find_configs_detail">Runs `find` across `/data/misc`, `/data/system`, `/data/adb`, `/data/user/0` and `/data/data` for `config.json` files under paths matching `*hma*` or `*hide_my_applist*`. Hardening rider: `-type f -xdev -maxdepth 8`, symlinks and unusual files are ignored, the first 20 hits are processed and any overflow is counted, the sweep has its own 8-second budget. Discovery has no side effects: sweep output feeds only `hma.read_config` and the UI.</string>
+
+    <!-- 14. hma.read_config -->
+    <string name="rootop_hma_read_config_title">Read HMA config</string>
+    <string name="rootop_hma_read_config_desc">Reads the contents of a discovered HMA configuration file</string>
+    <string name="rootop_hma_read_config_detail">Runs `head -c 262144` on a discovered path. The path parameter must pass the strict-path check (`^/data/[A-Za-z0-9_./-]+$`, no `..`, no shell metacharacters, no whitespace) — discovered paths that fail it are refused. This is the R1 fix from the privilege analysis: an attacker-planted path like `hma$(touch /data/local/tmp/pwned)/config.json` fails validation before any shell sees it. Read is capped at 256 KiB; real HMA configs are tens of KB.</string>
+
+    <!-- 15. hma.backup_config -->
+    <string name="rootop_hma_backup_config_title">Back up HMA config</string>
+    <string name="rootop_hma_backup_config_desc">Saves a backup copy of the HMA config before any change is made</string>
+    <string name="rootop_hma_backup_config_detail">Runs `cp -p &lt;config&gt; &lt;config&gt;.waex.bak` followed by `restorecon`. A `WAEX_HMA_BACKUP_OK` sentinel must be present in the output; a missing sentinel causes the entire config to be skipped — the write step refuses to run unless the backup succeeded.</string>
+
+    <!-- 16. hma.write_config -->
+    <string name="rootop_hma_write_config_title">Apply HMA fix</string>
+    <string name="rootop_hma_write_config_desc">Rewrites HMA\'s configuration file in place, removing the rules that hide or block WAEX. Owner and permissions are preserved; a backup is created first.</string>
+    <string name="rootop_hma_write_config_detail">Atomically rewrites the HMA config: `stat` the owner, `base64 -d` into a `.tmp` file, `chown`, `chmod 600`, `restorecon`, `mv -f` over the live config, then re-`chown`/`chmod`/`restorecon`. A `WAEX_HMA_WRITE_OK` sentinel authenticates the write; the config is then re-read and re-parsed to confirm the WAEX-hiding rules are gone. If verification fails, the backup is automatically restored. The 8-second budget (raised from 4s to halve the kill-window on slow storage) is what closes the R9 mid-write race.</string>
+
+    <!-- 17. hma.restore_config -->
+    <string name="rootop_hma_restore_config_title">Restore HMA backup</string>
+    <string name="rootop_hma_restore_config_desc">Copies the pre-edit backup back over the HMA config — only when the written config fails verification</string>
+    <string name="rootop_hma_restore_config_detail">Runs `cp -p &lt;config&gt;.waex.bak &lt;config&gt;` followed by `restorecon`. This step is automatic on the failure path of `hma.write_config`; it is not a user-facing \"restore\" button. A manual undo would be a separate registry entry with its own trigger.</string>
+
+    <!-- 18. hma.force_stop -->
+    <string name="rootop_hma_force_stop_title">Stop HMA apps</string>
+    <string name="rootop_hma_force_stop_desc">Force-stops installed HMA apps before and after the config edit so they can\'t overwrite it. Apps are matched by package-name pattern.</string>
+    <string name="rootop_hma_force_stop_detail">Runs `am force-stop` on every installed package whose name passes the HMA pattern check (well-formed package name containing `hma`, `hidemyapp`, or ending in `.hmal`). Runs both before and after the config edit so a running HMA process cannot overwrite the fix. Honest residual: apps merely named like HMA also get stopped — the registry narrows matching to well-formed names, but cannot eliminate incidental matches.</string>
+
+    <!-- Chrome strings -->
+    <string name="rootop_screen_title">Privileged Operations</string>
+    <string name="rootop_screen_summary">Every root operation WAEX can perform. Disabled entries fall back to their non-root path.</string>
+    <string name="rootop_category_restart">Restart</string>
+    <string name="rootop_category_update">Updates</string>
+    <string name="rootop_category_diagnostics">Diagnostics</string>
+    <string name="rootop_category_hma">HMA Repair</string>
+    <string name="rootop_risk_info">Info</string>
+    <string name="rootop_risk_low">Low</string>
+    <string name="rootop_risk_high">High</string>
+    <string name="rootop_enabled_by_you">Enabled</string>
+    <string name="rootop_disabled_by_you">Disabled by you</string>
+    <string name="rootop_detail_when_it_runs">When it runs</string>
+    <string name="rootop_detail_when_off">What happens when turned off</string>
+    <string name="rootop_detail_parameters">Parameters &amp; validation</string>
+    <string name="rootop_detail_command">Actual command</string>
+    <string name="rootop_detail_required_entry">Required — this check is how WAEX asks your root manager for access, so it cannot be turned off.</string>
+    <string name="rootop_log_title">Root activity log</string>
+    <string name="rootop_log_empty">No root activity recorded yet.</string>
+    <string name="rootop_log_cleared_on_exit">Kept in memory only — cleared when WAEX closes.</string>
+    <string name="rootop_log_toggle_desc">Logging is a privacy control for you, not a security control over WAEX.</string>
+    <string name="rootop_log_blocked">Blocked</string>
+    <string name="rootop_log_disabled_reason">Disabled by you</string>
+    <string name="rootop_log_output_preview">Output preview</string>
+    <string name="rootop_consent_title">Review what WAEX can do with root</string>
+    <string name="rootop_consent_body">WAEX performs %1$d registered root operations. Review the list before continuing.</string>
+    <string name="rootop_consent_continue">Continue — WAEX will now ask your root manager for access</string>
+    <string name="rootop_consent_boundary">This list shows what WAEX can run with root. Your root manager decides whether WAEX may run anything at all.</string>
+    <string name="rootop_awaiting_grant">Waiting for superuser approval…</string>
+    <string name="rootop_toast_restart_fallback">Root restart disabled by you — using broadcast fallback</string>
+    <string name="rootop_toast_install_fallback">Root install disabled by you — using the session installer</string>
+    <string name="rootop_toast_step_blocked">Step \"%1$s\" was skipped: disabled by you</string>
+    <string name="rootop_last_run_summary">Last run %1$s ago</string>
+    <string name="rootop_never_run">Never run this session</string>
+    <string name="rootop_run_count">%1$d run%2$s this session</string>
+</resources>

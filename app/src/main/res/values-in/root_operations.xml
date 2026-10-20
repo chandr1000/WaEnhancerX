@@ -1,0 +1,127 @@
+<resources>
+    <!-- 1. root.probe.id -->
+    <string name="rootop_root_probe_id_title">Pemeriksaan akses root</string>
+    <string name="rootop_root_probe_id_desc">Memeriksa akses superuser; memicu dialog permintaan akses root di pengelola root Anda</string>
+    <string name="rootop_root_probe_id_detail">Pemeriksaan ini menjalankan perintah `id` sebagai root. Ini adalah saat pengelola root Anda (Magisk, KernelSU, APatch) menampilkan dialog permintaan akses. Pemeriksaan ini tidak dapat dimatikan karena ia sendiri adalah mekanisme persetujuan: tanpa ia, entri lain tidak dapat meminta akses root.</string>
+
+    <!-- 2. restart.target.force_stop -->
+    <string name="rootop_restart_target_force_stop_title">Paksa berhenti aplikasi target</string>
+    <string name="rootop_restart_target_force_stop_desc">Mematikan proses aplikasi yang dipilih, seperti \"Paksa berhenti\" di Android. Status dalam aplikasi yang belum disimpan akan hilang.</string>
+    <string name="rootop_restart_target_force_stop_detail">Menjalankan `am force-stop` pada target yang dipilih. Ini mematikan proses; tidak membuka ulang — membuka ulang adalah entri terpisah. Hanya paket dalam cakupan Xposed 45 aplikasi modul (plus `com.whatsapp` dan `com.whatsapp.w4b`) yang diterima; paket modul sendiri ditolak. Saat dinonaktifkan, WAEX memakai fallback mulai ulang lewat siaran bertanda tangan yang tidak dapat memverikan proses benar-benar berhenti.</string>
+
+    <!-- 3. restart.target.launch -->
+    <string name="rootop_restart_target_launch_title">Buka ulang aplikasi target</string>
+    <string name="rootop_restart_target_launch_desc">Membuka aplikasi yang dipilih</string>
+    <string name="rootop_restart_target_launch_detail">Menjalankan perintah peluncur `monkey` Android pada target yang dipilih. Keberhasilan diverifikasi dengan mengurai baris `Events injected: N` — baris yang hilang berarti peluncuran gagal dan WAEX memakai fallback intent peluncur standar. Validasi cakupan sama dengan entri paksa berhenti.</string>
+
+    <!-- 4. update.mktemp -->
+    <string name="rootop_update_mktemp_title">Buat berkas staging</string>
+    <string name="rootop_update_mktemp_desc">Membuat berkas staging kosong di /data/local/tmp, hanya dipakai untuk pemasangan ini dan dihapus setelahnya</string>
+    <string name="rootop_update_mktemp_detail">Menjalankan `mktemp /data/local/tmp/waex.XXXXXX`. Jalur yang dikembalikan harus cocok dengan regex ketat (`^/data/local/tmp/waex\\.[A-Za-z0-9]+$`) sebelum dapat dipakai langkah berikutnya; jalur yang ditanam penyerang ditolak. Berkas dimiliki oleh root dan dihapus di blok `finally` alur pemasangan.</string>
+
+    <!-- 5. update.copy -->
+    <string name="rootop_update_copy_title">Salin APK ke berkas staging</string>
+    <string name="rootop_update_copy_desc">Menyalin APK pembaruan yang sudah diverifikasi dari cache WAEX ke berkas staging, lalu memastikan jumlah bytenya sesuai</string>
+    <string name="rootop_update_copy_detail">Menyalin APK yang diunduh dari cache aplikasi ke jalur staging yang dikembalikan `mktemp`, lalu menjalankan `wc -c` untuk memastikan jumlah byte sama dengan ukuran APK sumber. Ketidaksesuaian ukuran membatalkan pemasangan sebelum `pm install` berjalan. Jalur staging diperlakukan sebagai `DERIVED_OUTPUT` — hanya boleh berasal dari keluaran langkah `mktemp` yang lulus kebijakan.</string>
+
+    <!-- 6. update.install -->
+    <string name="rootop_update_install_title">Instal pembaruan WAEX</string>
+    <string name="rootop_update_install_desc">Menginstal pembaruan WAEX yang diunduh, menggantikan versi yang sedang terpasang. WAEX menutup diri untuk menyelesaikannya.</string>
+    <string name="rootop_update_install_detail">Menjalankan `pm install -r -d --user 0` pada berkas staging. `-r` menggantikan instalasi yang ada; `-d` juga mengizinkan memasang versionCode lebih rendah (hanya dipakai saat Anda memilih rilis lebih lama dari daftar rilis GitHub). Saat berhasil, WAEX mematikan prosesnya sendiri untuk menyelesaikan pergantian. Saat gagal, berkas staging tetap dibersihkan. Batas waktu 70 detik cukup untuk prompt pengelola root interaktif pada perangkat lambat.</string>
+
+    <!-- 7. update.cleanup -->
+    <string name="rootop_update_cleanup_title">Hapus berkas staging</string>
+    <string name="rootop_update_cleanup_desc">Menghapus berkas staging sementara</string>
+    <string name="rootop_update_cleanup_detail">Menjalankan `rm -f --` pada jalur staging di blok `finally` alur pemasangan, baik pemasangan berhasil maupun gagal. Best-effort: kegagalan pembersihan tidak mengembalikan pemasangan yang berhasil.</string>
+
+    <!-- 8. diag.process.pidof -->
+    <string name="rootop_diag_process_pidof_title">Periksa proses yang berjalan</string>
+    <string name="rootop_diag_process_pidof_desc">Melaporkan apakah masing-masing aplikasi WhatsApp sedang berjalan (hanya ID proses)</string>
+    <string name="rootop_diag_process_pidof_detail">Menjalankan skrip multi-baris `pidof` — satu panggilan `pidof` per paket tercakup — dan mengeluarkan baris `PID|&lt;package&gt;|&lt;pids&gt;` per target. Sentinel akhir `END|WAEX_PROCESS_SNAPSHOT` mengautentikasi keluaran; keluaran terpotong atau tercemar dibuang. Proses yang berjalan bukan bukti inisialisasi hook — hanya bahwa prosesnya ada.</string>
+
+    <!-- 9. diag.selinux.getenforce -->
+    <string name="rootop_diag_selinux_getenforce_title">Status SELinux</string>
+    <string name="rootop_diag_selinux_getenforce_desc">Membaca mode SELinux perangkat (Enforcing / Permissive / Disabled)</string>
+    <string name="rootop_diag_selinux_getenforce_detail">Menjalankan `getenforce` sebagai fallback ketiga setelah pembacaan `/sys/fs/selinux/enforce` dan jalur refleksi `android.os.SELinux` gagal. Tidak pernah memicu permintaan superuser baru: entri ini hanya berjalan saat root sudah diberikan. Keluaran divalidasi terhadap tiga nilai kanonik.</string>
+
+    <!-- 10. hma.probe.zygisk -->
+    <string name="rootop_hma_probe_zygisk_title">Deteksi HMA (Zygisk)</string>
+    <string name="rootop_hma_probe_zygisk_desc">Memeriksa isi /data/adb/modules untuk modul Zygisk Hide My Applist dan apakah modul itu aktif</string>
+    <string name="rootop_hma_probe_zygisk_detail">Memeriksa jalur modul Zygisk kanonik (`/data/adb/modules/hma_oss_zygisk`) dan mendaftar direktori modul lain yang namanya mengandung `hma`. Modul aktif dilaporkan sebagai `active`. Probe hanya membaca.</string>
+
+    <!-- 11. hma.probe.lsposed_db -->
+    <string name="rootop_hma_probe_lsposed_db_title">Deteksi HMA (LSPosed)</string>
+    <string name="rootop_hma_probe_lsposed_db_desc">Menyalin database modul LSPosed ke cache WAEX, memeriksa apakah HMA aktif di dalamnya, lalu menghapus salinannya</string>
+    <string name="rootop_hma_probe_lsposed_db_detail">Menyalin `/data/adb/lspd/config/modules_config.db` (beserta `-wal` dan `-shm`) ke direktori cache WAEX, memeriksa salinan lokal untuk baris HMA aktif, lalu menghapus salinan. Salinan cache singkat dapat dibaca dunia (`chmod 666`) untuk pembacaan SQLite lokal — itulah sebabnya entri ini berperingkat LOW, bukan INFO: database yang disalin mengekspos daftar modul aktif meskipun hanya baris HMA yang diperiksa.</string>
+
+    <!-- 12. hma.discover.packages -->
+    <string name="rootop_hma_discover_packages_title">Daftar paket mirip HMA</string>
+    <string name="rootop_hma_discover_packages_desc">Meminta daftar lengkap aplikasi terpasang dari sistem, hanya menyimpan nama yang tampak seperti varian HMA</string>
+    <string name="rootop_hma_discover_packages_detail">Menjalankan `pm list packages` dan secara lokal menyaring hasil untuk nama paket yang bentuk lowercased-nya mengandung `hma`, `hidemyapp`, atau berakhir dengan `.hmal`. Dipakai baik sebagai probe penemuan maupun sebagai daftar target untuk entri `hma.force_stop`.</string>
+
+    <!-- 13. hma.discover.find_configs -->
+    <string name="rootop_hma_discover_find_configs_title">Temukan konfigurasi HMA</string>
+    <string name="rootop_hma_discover_find_configs_desc">Menelusuri lima folder data sistem mencari berkas config.json milik HMA dan mengumpulkan jalurnya (hanya baca)</string>
+    <string name="rootop_hma_discover_find_configs_detail">Menjalankan `find` pada `/data/misc`, `/data/system`, `/data/adb`, `/data/user/0` dan `/data/data` untuk berkas `config.json` di bawah jalur yang cocok `*hma*` atau `*hide_my_applist*`. Pengerasan: `-type f -xdev -maxdepth 8`, symlink dan berkas tak biasa diabaikan, 20 temuan pertama diproses dan kelebihan dihitung, sweep punya anggaran 8 detik sendiri. Penemuan tidak punya efek samping: keluaran sweep hanya dipakai oleh `hma.read_config` dan UI.</string>
+
+    <!-- 14. hma.read_config -->
+    <string name="rootop_hma_read_config_title">Baca konfigurasi HMA</string>
+    <string name="rootop_hma_read_config_desc">Membaca isi berkas konfigurasi HMA yang ditemukan</string>
+    <string name="rootop_hma_read_config_detail">Menjalankan `head -c 262144` pada jalur yang ditemukan. Parameter jalur harus lulus pemeriksaan jalur ketat (`^/data/[A-Za-z0-9_./-]+$`, tanpa `..`, tanpa karakter meta shell, tanpa spasi) — jalur yang ditemukan dan gagal akan ditolak. Ini adalah perbaikan R1 dari analisis privilese: jalur yang ditanam penyerang seperti `hma$(touch /data/local/tmp/pwned)/config.json` gagal validasi sebelum shell melihatnya. Pembacaan dibatasi 256 KiB; konfigurasi HMA sungguhan berukuran puluhan KB.</string>
+
+    <!-- 15. hma.backup_config -->
+    <string name="rootop_hma_backup_config_title">Cadangkan konfigurasi HMA</string>
+    <string name="rootop_hma_backup_config_desc">Menyimpan salinan cadangan konfigurasi HMA sebelum ada perubahan dilakukan</string>
+    <string name="rootop_hma_backup_config_detail">Menjalankan `cp -p &lt;config&gt; &lt;config&gt;.waex.bak` lalu `restorecon`. Sentinel `WAEX_HMA_BACKUP_OK` harus ada di keluaran; sentinel hilang menyebabkan seluruh konfigurasi dilewati — langkah tulis menolak berjalan kecuali cadangan berhasil.</string>
+
+    <!-- 16. hma.write_config -->
+    <string name="rootop_hma_write_config_title">Terapkan perbaikan HMA</string>
+    <string name="rootop_hma_write_config_desc">Menulis ulang berkas konfigurasi HMA di tempat, menghapus aturan yang menyembunyikan atau memblokir WAEX. Pemilik dan izin berkas dipertahankan; cadangan dibuat lebih dulu.</string>
+    <string name="rootop_hma_write_config_detail">Menulis ulang konfigurasi HMA secara atomik: `stat` pemilik, `base64 -d` ke berkas `.tmp`, `chown`, `chmod 600`, `restorecon`, `mv -f` ke konfigurasi aktif, lalu `chown`/`chmod`/`restorecon` ulang. Sentinel `WAEX_HMA_WRITE_OK` mengautentikasi tulisan; konfigurasi lalu dibaca ulang dan diurai untuk memastikan aturan penyembunyian WAEX hilang. Bila verifikasi gagal, cadangan dipulihkan otomatis. Anggaran 8 detik (naik dari 4 detik untuk memperkecil jendela kill pada penyimpanan lambat) adalah penutup race R9 saat tulis.</string>
+
+    <!-- 17. hma.restore_config -->
+    <string name="rootop_hma_restore_config_title">Pulihkan cadangan HMA</string>
+    <string name="rootop_hma_restore_config_desc">Menyalin kembali cadangan yang dibuat sebelum penyuntingan ke konfigurasi HMA — hanya saat konfigurasi yang ditulis gagal diverifikasi</string>
+    <string name="rootop_hma_restore_config_detail">Menjalankan `cp -p &lt;config&gt;.waex.bak &lt;config&gt;` lalu `restorecon`. Langkah ini otomatis pada jalur kegagalan `hma.write_config`; bukan tombol \"pulihkan\" yang dihadapi pengguna. Undo manual akan menjadi entri registri terpisah dengan pemicunya sendiri.</string>
+
+    <!-- 18. hma.force_stop -->
+    <string name="rootop_hma_force_stop_title">Hentikan aplikasi HMA</string>
+    <string name="rootop_hma_force_stop_desc">Menghentikan paksa aplikasi HMA yang terpasang sebelum dan sesudah penyuntingan konfigurasi agar tidak menimpanya. Aplikasi dicocokkan lewat pola nama paket.</string>
+    <string name="rootop_hma_force_stop_detail">Menjalankan `am force-stop` pada setiap paket terpasang yang namanya lulus pemeriksaan pola HMA (nama paket well-formed yang mengandung `hma`, `hidemyapp`, atau berakhir dengan `.hmal`). Berjalan baik sebelum maupun sesudah penyuntingan konfigurasi agar proses HMA yang berjalan tidak dapat menimpa perbaikan. Sisa jujur: aplikasi yang sekadar dinamai seperti HMA juga dihentikan — registri mempersempit pencocokan ke nama well-formed, tetapi tidak dapat menghapus kecocokan insidental.</string>
+
+    <!-- Chrome strings -->
+    <string name="rootop_screen_title">Operasi Istimewa</string>
+    <string name="rootop_screen_summary">Semua operasi root yang dapat dijalankan WAEX. Entri yang dinonaktifkan akan memakai jalur non-root.</string>
+    <string name="rootop_category_restart">Mulai Ulang</string>
+    <string name="rootop_category_update">Pembaruan</string>
+    <string name="rootop_category_diagnostics">Diagnostik</string>
+    <string name="rootop_category_hma">Perbaikan HMA</string>
+    <string name="rootop_risk_info">Info</string>
+    <string name="rootop_risk_low">Rendah</string>
+    <string name="rootop_risk_high">Tinggi</string>
+    <string name="rootop_enabled_by_you">Diaktifkan</string>
+    <string name="rootop_disabled_by_you">Dinonaktifkan oleh Anda</string>
+    <string name="rootop_detail_when_it_runs">Kapan dijalankan</string>
+    <string name="rootop_detail_when_off">Yang terjadi saat dinonaktifkan</string>
+    <string name="rootop_detail_parameters">Parameter &amp; validasi</string>
+    <string name="rootop_detail_command">Perintah sebenarnya</string>
+    <string name="rootop_detail_required_entry">Wajib — pemeriksaan ini adalah cara WAEX meminta akses ke pengelola root Anda, sehingga tidak dapat dimatikan.</string>
+    <string name="rootop_log_title">Log aktivitas root</string>
+    <string name="rootop_log_empty">Belum ada aktivitas root yang tercatat.</string>
+    <string name="rootop_log_cleared_on_exit">Hanya disimpan di memori — dihapus saat WAEX ditutup.</string>
+    <string name="rootop_log_toggle_desc">Pencatatan log adalah kontrol privasi bagi Anda, bukan kontrol keamanan atas WAEX.</string>
+    <string name="rootop_log_blocked">Diblokir</string>
+    <string name="rootop_log_disabled_reason">Dinonaktifkan oleh Anda</string>
+    <string name="rootop_log_output_preview">Pratinjau keluaran</string>
+    <string name="rootop_consent_title">Tinjau apa yang dapat dilakukan WAEX dengan akses root</string>
+    <string name="rootop_consent_body">WAEX menjalankan %1$d operasi root terdaftar. Tinjau daftarnya sebelum melanjutkan.</string>
+    <string name="rootop_consent_continue">Lanjutkan — WAEX akan meminta akses root di pengelola root Anda</string>
+    <string name="rootop_consent_boundary">Daftar ini menunjukkan apa yang dapat dijalankan WAEX dengan root. Pengelola root Anda yang memutuskan apakah WAEX boleh menjalankan apa pun.</string>
+    <string name="rootop_awaiting_grant">Menunggu persetujuan superuser…</string>
+    <string name="rootop_toast_restart_fallback">Mulai ulang lewat root dinonaktifkan oleh Anda — memakai fallback siaran</string>
+    <string name="rootop_toast_install_fallback">Instalasi lewat root dinonaktifkan oleh Anda — memakai penginstal sesi</string>
+    <string name="rootop_toast_step_blocked">Langkah \"%1$s\" dilewati: dinonaktifkan oleh Anda</string>
+    <string name="rootop_last_run_summary">Terakhir dijalankan %1$s lalu</string>
+    <string name="rootop_never_run">Belum pernah dijalankan sesi ini</string>
+    <string name="rootop_run_count">%1$d kali dijalankan sesi ini%2$s</string>
+</resources>

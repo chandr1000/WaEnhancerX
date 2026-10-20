@@ -1,5 +1,7 @@
 package com.waenhancer.root
 
+import com.waenhancer.app.R
+
 /**
  * Compiled-in, immutable registry of every root operation the app can perform.
  * Users toggle entries on/off; they can never add, edit, or extend entries.
@@ -27,7 +29,10 @@ object RootCommandRegistry {
                 template = { "id" },
                 outputPolicy = OutputPolicy.Regex(RootParamPolicy.ROOT_ID.toRegex()),
                 timeoutMs = 4_000L,
-                toggleable = false
+                toggleable = false,
+                titleRes = R.string.rootop_root_probe_id_title,
+                descriptionRes = R.string.rootop_root_probe_id_desc,
+                detailRes = R.string.rootop_root_probe_id_detail
             )
         )
         put(
@@ -39,7 +44,10 @@ object RootCommandRegistry {
                 template = { p -> "am force-stop '" + p["package"] + "'" },
                 outputPolicy = OutputPolicy.EmptyOk,
                 timeoutMs = 4_000L,
-                toggleable = true
+                toggleable = true,
+                titleRes = R.string.rootop_restart_target_force_stop_title,
+                descriptionRes = R.string.rootop_restart_target_force_stop_desc,
+                detailRes = R.string.rootop_restart_target_force_stop_detail
             )
         )
         put(
@@ -53,7 +61,10 @@ object RootCommandRegistry {
                 },
                 outputPolicy = OutputPolicy.Regex(RootParamPolicy.MONKEY_LAUNCHED.toRegex()),
                 timeoutMs = 4_000L,
-                toggleable = true
+                toggleable = true,
+                titleRes = R.string.rootop_restart_target_launch_title,
+                descriptionRes = R.string.rootop_restart_target_launch_desc,
+                detailRes = R.string.rootop_restart_target_launch_detail
             )
         )
         put(
@@ -85,7 +96,10 @@ object RootCommandRegistry {
                 },
                 outputPolicy = OutputPolicy.Sentinel("END|WAEX_PROCESS_SNAPSHOT"),
                 timeoutMs = 4_000L,
-                toggleable = true
+                toggleable = true,
+                titleRes = R.string.rootop_diag_process_pidof_title,
+                descriptionRes = R.string.rootop_diag_process_pidof_desc,
+                detailRes = R.string.rootop_diag_process_pidof_detail
             )
         )
         put(
@@ -97,7 +111,10 @@ object RootCommandRegistry {
                 template = { "getenforce" },
                 outputPolicy = OutputPolicy.Regex(RootParamPolicy.SELINUX_MODE.toRegex()),
                 timeoutMs = 4_000L,
-                toggleable = true
+                toggleable = true,
+                titleRes = R.string.rootop_diag_selinux_getenforce_title,
+                descriptionRes = R.string.rootop_diag_selinux_getenforce_desc,
+                detailRes = R.string.rootop_diag_selinux_getenforce_detail
             )
         )
     }
