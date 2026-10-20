@@ -121,6 +121,10 @@
     <string name="rootop_consent_body">WAEX performs %1$d registered root operations. Review the list before continuing.</string>
     <string name="rootop_consent_continue">Continue — WAEX will now ask your root manager for access</string>
     <string name="rootop_consent_boundary">This list shows what WAEX can run with root. Your root manager decides whether WAEX may run anything at all.</string>
+    <string name="rootop_consent_scope_title">Scope &amp; reach</string>
+    <string name="rootop_consent_scope_restart">WAEX may force-stop or relaunch any of the 45 WhatsApp packages in its Xposed scope.</string>
+    <string name="rootop_consent_scope_install">WAEX uses pm install to install downloaded updates, replacing the currently installed version.</string>
+    <string name="rootop_consent_scope_find">WAEX searches five system data folders for HMA configuration files (read-only, capped at 20 results).</string>
     <string name="rootop_awaiting_grant">Waiting for superuser approval…</string>
     <string name="rootop_toast_restart_fallback">Root restart disabled by you — using broadcast fallback</string>
     <string name="rootop_toast_install_fallback">Root install disabled by you — using the session installer</string>

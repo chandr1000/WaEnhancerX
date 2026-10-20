@@ -120,6 +120,10 @@
     <string name="rootop_consent_body">WAEX menjalankan %1$d operasi root terdaftar. Tinjau daftarnya sebelum melanjutkan.</string>
     <string name="rootop_consent_continue">Lanjutkan — WAEX akan meminta akses root di pengelola root Anda</string>
     <string name="rootop_consent_boundary">Daftar ini menunjukkan apa yang dapat dijalankan WAEX dengan root. Pengelola root Anda yang memutuskan apakah WAEX boleh menjalankan apa pun.</string>
+    <string name="rootop_consent_scope_title">Cakupan &amp; jangkauan</string>
+    <string name="rootop_consent_scope_restart">WAEX dapat memaksa berhenti atau membuka ulang salah satu dari 45 paket WhatsApp dalam cakupan Xposed-nya.</string>
+    <string name="rootop_consent_scope_install">WAEX memakai pm install untuk memasang pembaruan yang diunduh, menggantikan versi yang sedang terpasang.</string>
+    <string name="rootop_consent_scope_find">WAEX menelusuri lima folder data sistem mencari berkas konfigurasi HMA (hanya baca, dibatasi 20 hasil).</string>
     <string name="rootop_awaiting_grant">Menunggu persetujuan superuser…</string>
     <string name="rootop_toast_restart_fallback">Mulai ulang lewat root dinonaktifkan oleh Anda — memakai fallback siaran</string>
     <string name="rootop_toast_install_fallback">Instalasi lewat root dinonaktifkan oleh Anda — memakai penginstal sesi</string>

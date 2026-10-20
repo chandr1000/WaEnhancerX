@@ -95,6 +95,27 @@ fun RootConsentReviewScreen(onContinue: () -> Unit) {
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+        WaexSectionHeader(
+            title = stringResource(R.string.rootop_consent_scope_title),
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+        Text(
+            text = "• " + stringResource(R.string.rootop_consent_scope_restart),
+            style = typography.bodySm,
+            color = colors.onSurfaceVariant
+        )
+        Text(
+            text = "• " + stringResource(R.string.rootop_consent_scope_install),
+            style = typography.bodySm,
+            color = colors.onSurfaceVariant
+        )
+        Text(
+            text = "• " + stringResource(R.string.rootop_consent_scope_find),
+            style = typography.bodySm,
+            color = colors.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
         Button(
             onClick = onContinue,
             modifier = Modifier
