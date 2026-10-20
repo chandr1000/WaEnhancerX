@@ -55,6 +55,11 @@
     <string name="rootop_hma_probe_lsposed_db_desc">Copies LSPosed\'s module database to WAEX\'s cache, checks whether HMA is enabled in it, then deletes the copy</string>
     <string name="rootop_hma_probe_lsposed_db_detail">Copies `/data/adb/lspd/config/modules_config.db` (plus its `-wal` and `-shm` siblings) into WAEX\'s cache directory, queries the local copy for an enabled HMA row, then deletes the copy. The cache copy is briefly world-readable (`chmod 666`) for the local SQLite read — this is why the entry is rated LOW, not INFO: the copied DB exposes the enabled-module list even though only HMA rows are queried.</string>
 
+    <!-- 11b. hma.copy_lsposed_db (the cache-copy step, split out for audit transparency) -->
+    <string name="rootop_hma_copy_lsposed_db_title">Copy LSPosed DB to cache</string>
+    <string name="rootop_hma_copy_lsposed_db_desc">Copies LSPosed\'s module database and its -wal/-shm siblings into WAEX\'s cache so a local SQLite read can check for HMA</string>
+    <string name="rootop_hma_copy_lsposed_db_detail">Runs `cp` on `modules_config.db` plus its `-wal` and `-shm` siblings into WAEX\'s cache directory, then `chmod 666` on the copies so the local SQLite open succeeds. The copies are deleted by the caller after the read. Briefly world-readable — this is the LOW-risk part of the LSPosed probe split out for audit transparency.</string>
+
     <!-- 12. hma.discover.packages -->
     <string name="rootop_hma_discover_packages_title">List HMA-like packages</string>
     <string name="rootop_hma_discover_packages_desc">Requests the full list of installed apps from the system, keeps only names that look like HMA variants</string>

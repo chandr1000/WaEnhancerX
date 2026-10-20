@@ -54,6 +54,11 @@
     <string name="rootop_hma_probe_lsposed_db_desc">Menyalin database modul LSPosed ke cache WAEX, memeriksa apakah HMA aktif di dalamnya, lalu menghapus salinannya</string>
     <string name="rootop_hma_probe_lsposed_db_detail">Menyalin `/data/adb/lspd/config/modules_config.db` (beserta `-wal` dan `-shm`) ke direktori cache WAEX, memeriksa salinan lokal untuk baris HMA aktif, lalu menghapus salinan. Salinan cache singkat dapat dibaca dunia (`chmod 666`) untuk pembacaan SQLite lokal — itulah sebabnya entri ini berperingkat LOW, bukan INFO: database yang disalin mengekspos daftar modul aktif meskipun hanya baris HMA yang diperiksa.</string>
 
+    <!-- 11b. hma.copy_lsposed_db (langkah salin cache, dipisah untuk transparansi audit) -->
+    <string name="rootop_hma_copy_lsposed_db_title">Salin database LSPosed ke cache</string>
+    <string name="rootop_hma_copy_lsposed_db_desc">Menyalin database modul LSPosed dan sibling -wal/-shm-nya ke cache WAEX agar pembacaan SQLite lokal dapat memeriksa HMA</string>
+    <string name="rootop_hma_copy_lsposed_db_detail">Menjalankan `cp` pada `modules_config.db` beserta `-wal` dan `-shm` ke direktori cache WAEX, lalu `chmod 666` pada salinan agar pembukaan SQLite lokal berhasil. Salinan dihapus oleh pemanggil setelah pembacaan. Singkatnya dapat dibaca dunia — ini adalah bagian berisiko LOW dari probe LSPosed yang dipisah untuk transparansi audit.</string>
+
     <!-- 12. hma.discover.packages -->
     <string name="rootop_hma_discover_packages_title">Daftar paket mirip HMA</string>
     <string name="rootop_hma_discover_packages_desc">Meminta daftar lengkap aplikasi terpasang dari sistem, hanya menyimpan nama yang tampak seperti varian HMA</string>

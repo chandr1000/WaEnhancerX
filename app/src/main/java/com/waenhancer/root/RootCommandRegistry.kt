@@ -246,9 +246,9 @@ object RootCommandRegistry {
                 outputPolicy = OutputPolicy.EmptyOk,
                 timeoutMs = 4_000L,
                 toggleable = true,
-                titleRes = R.string.rootop_hma_probe_lsposed_db_title,
-                descriptionRes = R.string.rootop_hma_probe_lsposed_db_desc,
-                detailRes = R.string.rootop_hma_probe_lsposed_db_detail
+                titleRes = R.string.rootop_hma_copy_lsposed_db_title,
+                descriptionRes = R.string.rootop_hma_copy_lsposed_db_desc,
+                detailRes = R.string.rootop_hma_copy_lsposed_db_detail
             )
         )
         add(
