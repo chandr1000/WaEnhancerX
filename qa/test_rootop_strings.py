@@ -153,13 +153,7 @@ def main() -> int:
 
     # Registry spec <-> string parity
     registry_ids = parse_registry_ids()
-    # §6.5: debug.echo is a debug-build-only entry that ships without its own
-    # title/desc/detail strings — it is reachable only through the dedicated
-    # Developer-tools panel which has its own chrome strings.
-    exempt_from_per_spec_parity = {'debug.echo'}
     for command_id in sorted(registry_ids):
-        if command_id in exempt_from_per_spec_parity:
-            continue
         underscored = command_id.replace('.', '_')
         for suffix in ('title', 'desc', 'detail'):
             key = f'rootop_{underscored}_{suffix}'

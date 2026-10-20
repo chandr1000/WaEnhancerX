@@ -418,7 +418,10 @@ object RootCommandRegistry {
                     },
                     outputPolicy = OutputPolicy.RawTextCapped,
                     timeoutMs = 4_000L,
-                    toggleable = true
+                    toggleable = true,
+                    titleRes = R.string.rootop_debug_echo_title,
+                    descriptionRes = R.string.rootop_debug_echo_desc,
+                    detailRes = R.string.rootop_debug_echo_detail
                 )
             )
         }

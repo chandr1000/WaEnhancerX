@@ -133,6 +133,11 @@
     <string name="rootop_never_run">Never run this session</string>
     <string name="rootop_run_count">%1$d run%2$s this session</string>
 
+    <!-- 19. debug.echo (debug-build-only, §6.5) -->
+    <string name="rootop_debug_echo_title">Test echo</string>
+    <string name="rootop_debug_echo_desc">Echoes text through the registry pipeline for testing</string>
+    <string name="rootop_debug_echo_detail">Debug-build-only entry. Base64-encodes arbitrary text on the client and runs `echo &lt;base64&gt; | base64 -d` as root to exercise the full runner → gate → validate → template → exec → output-policy → audit pipeline without touching a real operation.</string>
+
     <!-- Debug-build-only "inject test command" affordance (§6.5) -->
     <string name="rootop_debug_section_title">Developer tools</string>
     <string name="rootop_debug_input_hint">Text to echo through the registry (debug only)</string>

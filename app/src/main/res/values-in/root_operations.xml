@@ -132,6 +132,11 @@
     <string name="rootop_never_run">Belum pernah dijalankan sesi ini</string>
     <string name="rootop_run_count">%1$d kali dijalankan sesi ini%2$s</string>
 
+    <!-- 19. debug.echo (debug-build-only, §6.5) -->
+    <string name="rootop_debug_echo_title">Uji echo</string>
+    <string name="rootop_debug_echo_desc">Meng-echo teks melalui pipeline registri untuk pengujian</string>
+    <string name="rootop_debug_echo_detail">Entri hanya untuk build debug. Meng-encode-Base64 teks arbitrary di klien dan menjalankan `echo &lt;base64&gt; | base64 -d` sebagai root untuk menguji pipeline runner → gate → validate → template → exec → output-policy → audit tanpa menyentuh operasi nyata.</string>
+
     <!-- Debug-build-only "inject test command" affordance (§6.5) -->
     <string name="rootop_debug_section_title">Alat pengembang</string>
     <string name="rootop_debug_input_hint">Teks yang akan di-echo lewat registri (debug saja)</string>
