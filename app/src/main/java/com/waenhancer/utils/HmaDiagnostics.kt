@@ -191,11 +191,15 @@ object HmaDiagnostics {
 
             listOf(cacheDb, walDb, shmDb).forEach { if (it.exists()) it.delete() }
 
-            val copyCmd = "cp $LSP_CONFIG_DB ${cacheDb.absolutePath} 2>/dev/null; " +
-                    "cp $LSP_CONFIG_DB-wal ${walDb.absolutePath} 2>/dev/null; " +
-                    "cp $LSP_CONFIG_DB-shm ${shmDb.absolutePath} 2>/dev/null; " +
-                    "chmod 666 ${cacheDb.absolutePath} ${walDb.absolutePath} ${shmDb.absolutePath} 2>/dev/null; true"
-            AppRestartHelper.runRootCommand(copyCmd)
+            RegisteredRootRunner.run(
+                "hma.copy_lsposed_db",
+                mapOf(
+                    "cache_db" to cacheDb.absolutePath,
+                    "cache_wal" to walDb.absolutePath,
+                    "cache_shm" to shmDb.absolutePath
+                ),
+                "hma"
+            )
 
             if (cacheDb.exists()) {
                 val found = isHmaEnabledInLspDb(cacheDb)

@@ -227,6 +227,33 @@ object RootCommandRegistry {
         )
         add(
             RootCommandSpec(
+                id = "hma.copy_lsposed_db",
+                category = Category.HMA_REPAIR,
+                risk = RiskLevel.LOW,
+                params = listOf(
+                    ParamSpec("cache_db", ParamKind.FILE_PATH),
+                    ParamSpec("cache_wal", ParamKind.FILE_PATH),
+                    ParamSpec("cache_shm", ParamKind.FILE_PATH)
+                ),
+                template = { p ->
+                    val db = RootParamPolicy.shellQuote(p["cache_db"])
+                    val wal = RootParamPolicy.shellQuote(p["cache_wal"])
+                    val shm = RootParamPolicy.shellQuote(p["cache_shm"])
+                    "cp /data/adb/lspd/config/modules_config.db $db 2>/dev/null; " +
+                        "cp /data/adb/lspd/config/modules_config.db-wal $wal 2>/dev/null; " +
+                        "cp /data/adb/lspd/config/modules_config.db-shm $shm 2>/dev/null; " +
+                        "chmod 666 $db $wal $shm 2>/dev/null; true"
+                },
+                outputPolicy = OutputPolicy.EmptyOk,
+                timeoutMs = 4_000L,
+                toggleable = true,
+                titleRes = R.string.rootop_hma_probe_lsposed_db_title,
+                descriptionRes = R.string.rootop_hma_probe_lsposed_db_desc,
+                detailRes = R.string.rootop_hma_probe_lsposed_db_detail
+            )
+        )
+        add(
+            RootCommandSpec(
                 id = "hma.discover.packages",
                 category = Category.HMA_REPAIR,
                 risk = RiskLevel.LOW,

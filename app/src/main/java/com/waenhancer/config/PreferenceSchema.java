@@ -323,6 +323,7 @@ public final class PreferenceSchema {
         add(entries, "rootop_enabled_update_cleanup", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "rootop_enabled_hma_probe_zygisk", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "rootop_enabled_hma_probe_lsposed_db", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_hma_copy_lsposed_db", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "rootop_enabled_hma_discover_packages", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "rootop_enabled_hma_discover_find_configs", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "rootop_enabled_hma_read_config", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
