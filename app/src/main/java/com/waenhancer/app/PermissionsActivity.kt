@@ -129,21 +129,19 @@ class PermissionsActivity : ComponentActivity() {
         }
     }
 
+    private enum class UiState { CONSENT_REVIEW, PROBING, PERMISSIONS }
+
+    private var uiState by mutableStateOf(UiState.CONSENT_REVIEW)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val startupSplash = installSplashScreen()
         super.onCreate(savedInstanceState)
-        startupSplash.setKeepOnScreenCondition { !rootCheckComplete }
-
-        if (!RootGate.isConsentReviewed(this)) {
-            // Consent onboarding must precede the first su probe.
-            showConsentReviewThenProbe()
-        } else {
-            startRootProbe()
-        }
-    }
-
-    private fun showConsentReviewThenProbe() {
+        startupSplash.setKeepOnScreenCondition { !rootCheckComplete && uiState != UiState.CONSENT_REVIEW }
         enableEdgeToEdge()
+
+        uiState = if (RootGate.isConsentReviewed(this)) UiState.PROBING else UiState.CONSENT_REVIEW
+        if (uiState == UiState.PROBING) startRootProbe()
+
         setContent {
             val themeMode = preferenceManager.getString("app_theme_mode", "System")
             val interfaceSize = InterfaceSize.fromStorage(
@@ -163,10 +161,26 @@ class PermissionsActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    RootConsentReviewScreen(onContinue = {
-                        RootGate.markConsentReviewed(this@PermissionsActivity)
-                        startRootProbe()
-                    })
+                    when (uiState) {
+                        UiState.CONSENT_REVIEW -> RootConsentReviewScreen(onContinue = {
+                            RootGate.markConsentReviewed(this@PermissionsActivity)
+                            uiState = UiState.PROBING
+                            startRootProbe()
+                        })
+                        UiState.PROBING -> {
+                            // Splash screen handles the probing visual; this is a placeholder
+                            // that will be replaced when rootCheckComplete flips.
+                            androidx.compose.foundation.layout.Box(
+                                modifier = Modifier.fillMaxSize()
+                            ) {}
+                        }
+                        UiState.PERMISSIONS -> PermissionsScreen(
+                            onContinue = {
+                                preferenceManager.putBoolean(PREF_PERMISSION_ONBOARDING_COMPLETE, true)
+                                navigateToHome(rootGranted = true)
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -196,36 +210,7 @@ class PermissionsActivity : ComponentActivity() {
             navigateToHome(rootGranted = true)
             return
         }
-
-        enableEdgeToEdge()
-        setContent {
-            val themeMode = preferenceManager.getString("app_theme_mode", "System")
-            val interfaceSize = InterfaceSize.fromStorage(
-                preferenceManager.getString("app_interface_size", "Compact")
-            )
-            val isDark = when (themeMode) {
-                "Dark" -> true
-                "Light" -> false
-                else -> isSystemInDarkTheme()
-            }
-            WaexTheme(
-                darkTheme = isDark,
-                useMonet = themeMode == "Monet",
-                interfaceSize = interfaceSize
-            ) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    PermissionsScreen(
-                        onContinue = {
-                            preferenceManager.putBoolean(PREF_PERMISSION_ONBOARDING_COMPLETE, true)
-                            navigateToHome(rootGranted = true)
-                        }
-                    )
-                }
-            }
-        }
+        uiState = UiState.PERMISSIONS
     }
 
     private fun navigateToHome(rootGranted: Boolean) {
