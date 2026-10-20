@@ -58,8 +58,10 @@ object RootGate {
         val spec = RootCommandRegistry.spec(commandId) ?: return
         if (!spec.toggleable) return
         state[commandId] = enabled
+        // Synchronous write so a process kill (e.g. Process.killProcess in
+        // UpdateDownloader.installApkWithRoot) cannot lose the toggle change.
         PreferenceStores.privateStore(context).edit()
-            .putBoolean(keyFor(commandId), enabled).apply()
+            .putBoolean(keyFor(commandId), enabled).commit()
     }
 
     fun isAuditLogEnabled(): Boolean = auditLogEnabled
@@ -67,7 +69,7 @@ object RootGate {
     fun setAuditLogEnabled(context: Context, enabled: Boolean) {
         auditLogEnabled = enabled
         PreferenceStores.privateStore(context).edit()
-            .putBoolean(KEY_AUDIT_LOG_ENABLED, enabled).apply()
+            .putBoolean(KEY_AUDIT_LOG_ENABLED, enabled).commit()
     }
 
     fun isConsentReviewed(context: Context): Boolean =
@@ -75,7 +77,7 @@ object RootGate {
 
     fun markConsentReviewed(context: Context) {
         PreferenceStores.privateStore(context).edit()
-            .putBoolean(KEY_CONSENT_REVIEWED, true).apply()
+            .putBoolean(KEY_CONSENT_REVIEWED, true).commit()
     }
 
     private fun keyFor(commandId: String): String =
