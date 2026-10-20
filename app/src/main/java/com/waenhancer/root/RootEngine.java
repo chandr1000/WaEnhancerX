@@ -43,6 +43,10 @@ public final class RootEngine {
         return r.ok ? r.output : null;
     }
 
+    public static Result execResult(String command, long timeoutMillis) {
+        return execResult(command, timeoutMillis, SU_STARTER);
+    }
+
     /** Tri-state result so the runner can distinguish timeout from nonzero-exit. */
     public static final class Result {
         public final boolean ok;
