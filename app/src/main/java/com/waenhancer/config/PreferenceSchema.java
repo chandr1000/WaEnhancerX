@@ -317,6 +317,10 @@ public final class PreferenceSchema {
         add(entries, "rootop_enabled_restart_target_launch", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "rootop_enabled_diag_process_pidof", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "rootop_enabled_diag_selinux_getenforce", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_update_mktemp", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_update_copy", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_update_install", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
+        add(entries, "rootop_enabled_update_cleanup", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "root_audit_log_enabled", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "root_consent_reviewed", Type.BOOLEAN, Sensitivity.RUNTIME, Store.PRIVATE);
         add(entries, "secondstotime", Type.STRING, Sensitivity.PUBLIC_SETTING, Store.PUBLIC);

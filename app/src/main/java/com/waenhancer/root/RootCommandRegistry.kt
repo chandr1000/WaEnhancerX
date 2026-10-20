@@ -117,6 +117,78 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_diag_selinux_getenforce_detail
             )
         )
+        put(
+            RootCommandSpec(
+                id = "update.mktemp",
+                category = Category.UPDATE,
+                risk = RiskLevel.LOW,
+                params = emptyList(),
+                template = { "mktemp /data/local/tmp/waex.XXXXXX" },
+                outputPolicy = OutputPolicy.Regex(RootParamPolicy.MKTEMP_PATH.toRegex()),
+                timeoutMs = 8_000L,
+                toggleable = true,
+                titleRes = R.string.rootop_update_mktemp_title,
+                descriptionRes = R.string.rootop_update_mktemp_desc,
+                detailRes = R.string.rootop_update_mktemp_detail
+            )
+        )
+        put(
+            RootCommandSpec(
+                id = "update.copy",
+                category = Category.UPDATE,
+                risk = RiskLevel.LOW,
+                params = listOf(
+                    ParamSpec("source", ParamKind.FILE_PATH),
+                    ParamSpec("target", ParamKind.DERIVED_OUTPUT)
+                ),
+                template = { p ->
+                    "cat " + RootParamPolicy.shellQuote(p["source"]) + " > " +
+                        RootParamPolicy.shellQuote(p["target"]) + " && chmod 644 " +
+                        RootParamPolicy.shellQuote(p["target"]) + " && wc -c < " +
+                        RootParamPolicy.shellQuote(p["target"])
+                },
+                outputPolicy = OutputPolicy.Regex(RootParamPolicy.POSITIVE_LONG.toRegex()),
+                timeoutMs = 8_000L,
+                toggleable = true,
+                titleRes = R.string.rootop_update_copy_title,
+                descriptionRes = R.string.rootop_update_copy_desc,
+                detailRes = R.string.rootop_update_copy_detail
+            )
+        )
+        put(
+            RootCommandSpec(
+                id = "update.install",
+                category = Category.UPDATE,
+                risk = RiskLevel.HIGH,
+                params = listOf(ParamSpec("target", ParamKind.DERIVED_OUTPUT)),
+                template = { p ->
+                    "pm install -r -d --user 0 " + RootParamPolicy.shellQuote(p["target"])
+                },
+                outputPolicy = OutputPolicy.Regex(RootParamPolicy.PM_INSTALL_SUCCESS.toRegex()),
+                timeoutMs = 70_000L,
+                toggleable = true,
+                titleRes = R.string.rootop_update_install_title,
+                descriptionRes = R.string.rootop_update_install_desc,
+                detailRes = R.string.rootop_update_install_detail
+            )
+        )
+        put(
+            RootCommandSpec(
+                id = "update.cleanup",
+                category = Category.UPDATE,
+                risk = RiskLevel.LOW,
+                params = listOf(ParamSpec("target", ParamKind.DERIVED_OUTPUT)),
+                template = { p ->
+                    "rm -f -- " + RootParamPolicy.shellQuote(p["target"])
+                },
+                outputPolicy = OutputPolicy.EmptyOk,
+                timeoutMs = 8_000L,
+                toggleable = true,
+                titleRes = R.string.rootop_update_cleanup_title,
+                descriptionRes = R.string.rootop_update_cleanup_desc,
+                detailRes = R.string.rootop_update_cleanup_detail
+            )
+        )
     }
 
     fun spec(commandId: String): RootCommandSpec? = SPECS[commandId]

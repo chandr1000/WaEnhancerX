@@ -34,6 +34,12 @@ public final class RootParamPolicy {
     public static final Pattern MKTEMP_PATH = Pattern.compile(
             "^/data/local/tmp/waex\\.[A-Za-z0-9]+$");
 
+    /** {@code wc -c} output: a positive integer (the byte count). */
+    public static final Pattern POSITIVE_LONG = Pattern.compile("^[1-9][0-9]*$");
+
+    /** {@code pm install} success line: starts with "Success" (case-insensitive). */
+    public static final Pattern PM_INSTALL_SUCCESS = Pattern.compile("(?is)^Success.*");
+
     private RootParamPolicy() {}
 
     public static boolean isValidPackageName(String value) {
