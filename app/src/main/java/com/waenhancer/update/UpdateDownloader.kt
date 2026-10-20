@@ -179,32 +179,34 @@ object UpdateDownloader {
             }
             var staging: String? = null
             val result: String? = try {
-                // Step 1: mktemp — staging path is a DERIVED_OUTPUT for the next steps.
-                val mktempResult = RegisteredRootRunner.run("update.mktemp", callerTag = "update")
-                val mktempPath = (mktempResult as? RootResult.Completed)?.output?.trim()
-                if (mktempPath == null) return@Thread "Unable to obtain a private installation temporary file"
-                staging = mktempPath
-                // Re-check immediately before the copy step (TOCTOU guard).
-                if (!RootFlowConsent.isStepEnabled("update.copy")) return@Thread "Step \"copy\" was skipped: disabled by you"
+                run {
+                    // Step 1: mktemp — staging path is a DERIVED_OUTPUT for the next steps.
+                    val mktempResult = RegisteredRootRunner.run("update.mktemp", callerTag = "update")
+                    val mktempPath = (mktempResult as? RootResult.Completed)?.output?.trim()
+                    if (mktempPath == null) return@run "Unable to obtain a private installation temporary file"
+                    staging = mktempPath
+                    // Re-check immediately before the copy step (TOCTOU guard).
+                    if (!RootFlowConsent.isStepEnabled("update.copy")) return@run "Step \"copy\" was skipped: disabled by you"
 
-                // Step 2: copy + verify byte count.
-                val copyParams = mapOf(
-                    "source" to apkFile.absolutePath,
-                    "target" to mktempPath
-                )
-                val copyResult = RegisteredRootRunner.run("update.copy", copyParams, "update")
-                val copyOutput = (copyResult as? RootResult.Completed)?.output?.trim()
-                val size = copyOutput?.toLongOrNull() ?: 0
-                if (size != apkFile.length() || size <= 1024) {
-                    return@Thread if (copyOutput.isNullOrEmpty()) "Failed to copy verified APK to temporary storage"
-                    else "Failed to copy verified APK: $copyOutput"
+                    // Step 2: copy + verify byte count.
+                    val copyParams = mapOf(
+                        "source" to apkFile.absolutePath,
+                        "target" to mktempPath
+                    )
+                    val copyResult = RegisteredRootRunner.run("update.copy", copyParams, "update")
+                    val copyOutput = (copyResult as? RootResult.Completed)?.output?.trim()
+                    val size = copyOutput?.toLongOrNull() ?: 0
+                    if (size != apkFile.length() || size <= 1024) {
+                        return@run if (copyOutput.isNullOrEmpty()) "Failed to copy verified APK to temporary storage"
+                        else "Failed to copy verified APK: $copyOutput"
+                    }
+                    if (!RootFlowConsent.isStepEnabled("update.install")) return@run "Step \"install\" was skipped: disabled by you"
+
+                    // Step 3: pm install.
+                    val installParams = mapOf("target" to mktempPath)
+                    val installResult = RegisteredRootRunner.run("update.install", installParams, "update")
+                    (installResult as? RootResult.Completed)?.output?.trim()
                 }
-                if (!RootFlowConsent.isStepEnabled("update.install")) return@Thread "Step \"install\" was skipped: disabled by you"
-
-                // Step 3: pm install.
-                val installParams = mapOf("target" to mktempPath)
-                val installResult = RegisteredRootRunner.run("update.install", installParams, "update")
-                (installResult as? RootResult.Completed)?.output?.trim()
             } finally {
                 // Step 4: cleanup (best-effort, runs in finally).
                 staging?.let { path ->

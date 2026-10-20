@@ -20,8 +20,8 @@ object RootCommandRegistry {
 
     const val PROBE_ID = "root.probe.id"
 
-    private val SPECS: Map<String, RootCommandSpec> = buildMap {
-        put(
+    private val SPECS: Map<String, RootCommandSpec> = buildList {
+        add(
             RootCommandSpec(
                 id = PROBE_ID,
                 category = Category.DIAGNOSTICS,
@@ -36,7 +36,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_root_probe_id_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "restart.target.force_stop",
                 category = Category.RESTART,
@@ -51,7 +51,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_restart_target_force_stop_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "restart.target.launch",
                 category = Category.RESTART,
@@ -68,7 +68,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_restart_target_launch_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "diag.process.pidof",
                 category = Category.DIAGNOSTICS,
@@ -103,7 +103,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_diag_process_pidof_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "diag.selinux.getenforce",
                 category = Category.DIAGNOSTICS,
@@ -118,7 +118,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_diag_selinux_getenforce_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "update.mktemp",
                 category = Category.UPDATE,
@@ -133,7 +133,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_update_mktemp_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "update.copy",
                 category = Category.UPDATE,
@@ -156,7 +156,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_update_copy_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "update.install",
                 category = Category.UPDATE,
@@ -173,7 +173,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_update_install_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "update.cleanup",
                 category = Category.UPDATE,
@@ -190,7 +190,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_update_cleanup_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "hma.probe.zygisk",
                 category = Category.HMA_REPAIR,
@@ -208,7 +208,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_hma_probe_zygisk_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "hma.probe.lsposed_db",
                 category = Category.HMA_REPAIR,
@@ -225,7 +225,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_hma_probe_lsposed_db_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "hma.discover.packages",
                 category = Category.HMA_REPAIR,
@@ -240,7 +240,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_hma_discover_packages_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "hma.discover.find_configs",
                 category = Category.HMA_REPAIR,
@@ -262,7 +262,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_hma_discover_find_configs_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "hma.read_config",
                 category = Category.HMA_REPAIR,
@@ -281,7 +281,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_hma_read_config_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "hma.backup_config",
                 category = Category.HMA_REPAIR,
@@ -302,7 +302,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_hma_backup_config_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "hma.write_config",
                 category = Category.HMA_REPAIR,
@@ -337,7 +337,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_hma_write_config_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "hma.restore_config",
                 category = Category.HMA_REPAIR,
@@ -357,7 +357,7 @@ object RootCommandRegistry {
                 detailRes = R.string.rootop_hma_restore_config_detail
             )
         )
-        put(
+        add(
             RootCommandSpec(
                 id = "hma.force_stop",
                 category = Category.HMA_REPAIR,
@@ -379,7 +379,7 @@ object RootCommandRegistry {
         // §6.5 debug-build-only "inject test command" affordance — owner-added 2026-10-20.
         // Release builds exclude the entry entirely; the enforcement scanner guards this.
         if (BuildConfig.DEBUG) {
-            put(
+            add(
                 RootCommandSpec(
                     id = "debug.echo",
                     category = Category.DIAGNOSTICS,
@@ -396,7 +396,7 @@ object RootCommandRegistry {
                 )
             )
         }
-    }
+    }.associateBy { it.id }
 
     fun spec(commandId: String): RootCommandSpec? = SPECS[commandId]
 

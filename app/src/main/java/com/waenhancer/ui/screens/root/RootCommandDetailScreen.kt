@@ -23,14 +23,14 @@ import com.waenhancer.ui.navigation.LocalWaexNavController
 fun RootCommandDetailScreen(commandId: String) {
     val nav = LocalWaexNavController.current
     val spec = RootCommandRegistry.spec(commandId) ?: run {
-        nav.popBackStack()
+        nav.popBack()
         return
     }
     Scaffold(
         topBar = {
             WaexTopBar(
                 title = if (spec.titleRes != 0) stringResource(spec.titleRes) else spec.id,
-                onBack = { nav.popBackStack() }
+                onBackClick = { nav.popBack() }
             )
         }
     ) { padding ->

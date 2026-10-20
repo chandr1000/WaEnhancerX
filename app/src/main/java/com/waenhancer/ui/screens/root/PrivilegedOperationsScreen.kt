@@ -62,9 +62,9 @@ fun PrivilegedOperationsScreen() {
         topBar = {
             WaexTopBar(
                 title = stringResource(R.string.rootop_screen_title),
-                onBack = { nav.popBackStack() },
+                onBackClick = { nav.popBack() },
                 actions = {
-                    IconButton(onClick = { nav.navigate(Screen.RootAuditLog) }) {
+                    IconButton(onClick = { nav.navigateTo(Screen.RootAuditLog) }) {
                         Icon(WaexIcons.Search, contentDescription = null)
                     }
                 }
