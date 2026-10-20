@@ -38,8 +38,7 @@ data class ParamSpec(
     val name: String,
     val kind: ParamKind,
     val required: Boolean = true,
-    val repeated: Boolean = false,
-    val extra: Map<String, String> = emptyMap()
+    val repeated: Boolean = false
 )
 
 /**

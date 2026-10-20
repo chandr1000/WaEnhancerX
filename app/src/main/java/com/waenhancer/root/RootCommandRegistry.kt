@@ -77,12 +77,11 @@ object RootCommandRegistry {
                     ParamSpec(
                         name = "packages",
                         kind = ParamKind.PACKAGE_NAME,
-                        repeated = true,
-                        extra = mapOf("separator" to "\n")
+                        repeated = true
                     ),
                     ParamSpec(
                         name = "script",
-                        kind = ParamKind.FILE_PATH,
+                        kind = ParamKind.DERIVED_OUTPUT,
                         required = false
                     )
                 ),
