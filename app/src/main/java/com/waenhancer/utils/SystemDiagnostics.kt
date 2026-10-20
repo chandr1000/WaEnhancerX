@@ -57,7 +57,7 @@ object SystemDiagnosticsReader {
         } else null
         val manager = findFrameworkManager(pm, runtimeFramework)
         val hooked = runtimeStore.getStringSet("hooked_whatsapp_packages", emptySet()).orEmpty()
-        val rootAllowed = UpdateDownloader.hasRootAccess()
+        val rootAllowed = UpdateDownloader.hasRootAccess("diagnostics")
         return SystemDiagnostics(
             moduleVersion = own.versionName.orEmpty(),
             moduleVersionCode = if (Build.VERSION.SDK_INT >= 28) own.longVersionCode else @Suppress("DEPRECATION") own.versionCode.toLong(),

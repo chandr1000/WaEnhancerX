@@ -176,7 +176,10 @@ object HmaDiagnostics {
         // 1. Zygisk module directory check
         val zygiskResult = RegisteredRootRunner.run("hma.probe.zygisk", callerTag = "hma")
         val zygiskCheck = (zygiskResult as? RootResult.Completed)?.output
-        if (zygiskCheck?.contains("active") == true || zygiskCheck?.contains("hma") == true) {
+        // Only "active" indicates an enabled HMA Zygisk module; the bare
+        // contains("hma") fallback would false-positive on disabled modules
+        // whose directory still exists.
+        if (zygiskCheck?.contains("active") == true) {
             return true
         }
 

@@ -61,10 +61,12 @@ object UpdateDownloader {
         fun onFailure(error: Exception)
     }
 
-    fun hasRootAccess(): Boolean {
+    fun hasRootAccess(): Boolean = hasRootAccess("update")
+
+    fun hasRootAccess(callerTag: String): Boolean {
         // R7 fix: use the shared ROOT_ID regex (no substring matching). The probe
         // is the registered root.probe.id entry; the result is a typed RootResult.
-        val result = RegisteredRootRunner.run("root.probe.id", callerTag = "update")
+        val result = RegisteredRootRunner.run("root.probe.id", callerTag = callerTag)
         val output = (result as? RootResult.Completed)?.output
         return RootParamPolicy.reportsRootId(output)
     }

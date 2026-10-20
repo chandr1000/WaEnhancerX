@@ -39,7 +39,7 @@ public final class AppRestartHelper {
     private AppRestartHelper() {}
 
     public static boolean hasRootAccess() {
-        RootResult result = RegisteredRootRunner.run("root.probe.id");
+        RootResult result = RegisteredRootRunner.run("root.probe.id", java.util.Collections.emptyMap(), "restart");
         if (result instanceof RootResult.Completed) {
             return RootParamPolicy.reportsRootId(((RootResult.Completed) result).getOutput());
         }
@@ -98,8 +98,11 @@ public final class AppRestartHelper {
                     }
 
                     if (!stoppedByRoot) {
-                        // Registered receivers require the manager's signature permission.
-                        // This broadcast is package-scoped and carries an exact target.
+                        // The registry root path was either disabled by the user or
+                        // returned no output; surface the broadcast fallback so the
+                        // user knows why restart verification is weaker.
+                        toast(context, UiText.get(R.string.rootop_toast_restart_fallback,
+                                "Root restart disabled by you — using broadcast fallback"));
                         try {
                             Intent restart = new Intent(RESTART_ACTION);
                             restart.setPackage(packageName);
