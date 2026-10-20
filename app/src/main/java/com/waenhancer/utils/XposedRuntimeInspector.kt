@@ -1,7 +1,8 @@
 package com.waenhancer.utils
 
 import android.os.SystemClock
-import com.waenhancer.xposed.utils.AppRestartHelper
+import com.waenhancer.root.RegisteredRootRunner
+import com.waenhancer.root.RootResult
 import java.util.Collections
 
 /** A successful, timestamped process observation, not proof of hook initialization. */
@@ -51,16 +52,24 @@ object XposedRuntimeInspector {
         }
         if (packages.isEmpty()) return XposedRuntimeSnapshot(emptyMap()).also { cachedSnapshot = it }
         val startedAtElapsed = SystemClock.elapsedRealtime()
-        val command = "command -v pidof >/dev/null 2>&1 || exit 127\n" + packages.joinToString("\n") { pkg ->
+        val script = "command -v pidof >/dev/null 2>&1 || exit 127\n" + packages.joinToString("\n") { pkg ->
             "pids=\$(pidof $pkg 2>/dev/null); rc=\$?; " +
                 "case \"\$rc\" in 0) [ -n \"\$pids\" ] || exit 2;; " +
                 "1) [ -z \"\$pids\" ] || exit 2;; *) exit 2;; esac; " +
                 "printf 'PID|$pkg|%s\\n' \"\$pids\""
         }
-        val completedCommand = command + "\nprintf 'END|WAEX_PROCESS_SNAPSHOT\\n'"
-        val output = try { AppRestartHelper.runRootCommand(completedCommand) }
-            catch (_: RuntimeException) { null }
-            catch (_: LinkageError) { null }
+        val params = mapOf(
+            "packages" to packages.joinToString("\n"),
+            "script" to script
+        )
+        val output: String? = try {
+            when (val result = RegisteredRootRunner.run("diag.process.pidof", params, "diagnostics")) {
+                is RootResult.Completed -> result.output
+                is RootResult.Success -> ""
+                else -> null
+            }
+        } catch (_: RuntimeException) { null }
+        catch (_: LinkageError) { null }
         val lines = output?.lineSequence()?.filter { it.isNotBlank() }?.toList()
         val result = lines?.takeIf { it.lastOrNull() == "END|WAEX_PROCESS_SNAPSHOT" }
             ?.dropLast(1)?.joinToString("\n")?.let(::parseXposedRuntimeSnapshot)

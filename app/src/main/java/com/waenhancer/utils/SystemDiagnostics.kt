@@ -5,8 +5,9 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import com.waenhancer.config.PreferenceStores
+import com.waenhancer.root.RegisteredRootRunner
+import com.waenhancer.root.RootResult
 import com.waenhancer.update.UpdateDownloader
-import com.waenhancer.xposed.utils.AppRestartHelper
 import com.waenhancer.xposed.utils.ModuleStatus
 import java.io.File
 
@@ -146,8 +147,9 @@ object SystemDiagnosticsReader {
         // Root is the authoritative fallback and mirrors Android's documented `getenforce`
         // diagnostic command. Do not trigger another superuser request when root was not granted.
         if (rootAllowed) {
-            normalizeSelinuxState(AppRestartHelper.runRootCommand("getenforce"))
-                ?.let { return it }
+            val result = RegisteredRootRunner.run("diag.selinux.getenforce", emptyMap(), "diagnostics")
+            val raw = (result as? RootResult.Completed)?.output
+            normalizeSelinuxState(raw)?.let { return it }
         }
 
         return "Unavailable"

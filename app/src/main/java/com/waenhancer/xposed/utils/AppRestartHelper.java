@@ -1,6 +1,9 @@
 package com.waenhancer.xposed.utils;
 
 import com.waenhancer.app.R;
+import com.waenhancer.root.RegisteredRootRunner;
+import com.waenhancer.root.RootParamPolicy;
+import com.waenhancer.root.RootResult;
 import com.waenhancer.utils.UiText;
 
 import android.app.AlarmManager;
@@ -37,7 +40,11 @@ public final class AppRestartHelper {
     private AppRestartHelper() {}
 
     public static boolean hasRootAccess() {
-        return RestartTargetPolicy.reportsRootId(runRootCommand("id"));
+        RootResult result = RegisteredRootRunner.run("root.probe.id");
+        if (result instanceof RootResult.Completed) {
+            return RootParamPolicy.reportsRootId(((RootResult.Completed) result).getOutput());
+        }
+        return false;
     }
 
     /** For internal callers. Do not call this synchronous operation from the UI thread. */
@@ -93,13 +100,10 @@ public final class AppRestartHelper {
                 try {
                     // Root is tried first; never send the self-kill broadcast after
                     // a successful force-stop/relaunch, which could kill the new process.
-                    boolean stoppedByRoot = runRootCommand(
-                            RestartTargetPolicy.forceStopCommand(packageName, supported)) != null;
+                    boolean stoppedByRoot = forceStopViaRegistry(packageName);
                     boolean startedByRoot = false;
                     if (stoppedByRoot) {
-                        String output = runRootCommand(
-                                RestartTargetPolicy.launchCommand(packageName, supported));
-                        startedByRoot = RestartTargetPolicy.reportsMonkeyLaunch(output);
+                        startedByRoot = launchViaRegistry(packageName);
                     }
                     if (startedByRoot) {
                         RESTART_PENDING.set(false);
@@ -166,10 +170,9 @@ public final class AppRestartHelper {
                             continue;
                         }
 
-                        boolean stoppedByRoot = runRootCommand(
-                                RestartTargetPolicy.forceStopCommand(packageName, targets)) != null;
+                        boolean stoppedByRoot = forceStopViaRegistry(packageName);
                         if (stoppedByRoot) {
-                            runRootCommand(RestartTargetPolicy.launchCommand(packageName, targets));
+                            launchViaRegistry(packageName);
                         } else {
                             Intent restart = new Intent(RESTART_ACTION);
                             restart.setPackage(packageName);
@@ -231,5 +234,20 @@ public final class AppRestartHelper {
             Toast.makeText(safeContext != null ? safeContext : context,
                     message, Toast.LENGTH_SHORT).show();
         });
+    }
+
+    private static boolean forceStopViaRegistry(String packageName) {
+        java.util.Map<String, String> params = java.util.Collections.singletonMap("package", packageName);
+        RootResult result = RegisteredRootRunner.run("restart.target.force_stop", params, "restart");
+        return result instanceof RootResult.Success || result instanceof RootResult.Completed;
+    }
+
+    private static boolean launchViaRegistry(String packageName) {
+        java.util.Map<String, String> params = java.util.Collections.singletonMap("package", packageName);
+        RootResult result = RegisteredRootRunner.run("restart.target.launch", params, "restart");
+        if (result instanceof RootResult.Completed) {
+            return RootParamPolicy.reportsMonkeyLaunch(((RootResult.Completed) result).getOutput());
+        }
+        return result instanceof RootResult.Success;
     }
 }
