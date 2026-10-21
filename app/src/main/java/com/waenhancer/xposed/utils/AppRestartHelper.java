@@ -164,6 +164,8 @@ public final class AppRestartHelper {
                         if (stoppedByRoot) {
                             launchViaRegistry(packageName);
                         } else {
+                            toast(appContext, UiText.get(R.string.rootop_toast_restart_fallback,
+                                    "Root restart disabled by you — using broadcast fallback"));
                             Intent restart = new Intent(RESTART_ACTION);
                             restart.setPackage(packageName);
                             restart.putExtra("PKG", packageName);
