@@ -47,7 +47,6 @@ import com.waenhancer.ui.components.StitchSwitch
 import com.waenhancer.ui.components.WaexCard
 import com.waenhancer.ui.components.WaexPreferenceItem
 import com.waenhancer.ui.components.WaexSectionHeader
-import com.waenhancer.ui.components.WaexStatusChip
 import com.waenhancer.ui.components.WaexTopBar
 import com.waenhancer.ui.designsystem.WaexIcons
 import com.waenhancer.ui.designsystem.WaexTheme
@@ -184,11 +183,16 @@ private fun RootOperationItem(
 private fun riskChip(risk: RiskLevel) {
     val colors = WaexTheme.colors
     val (text, color) = when (risk) {
-        RiskLevel.INFO -> stringResource(R.string.rootop_risk_info) to colors.outlineVariant
-        RiskLevel.LOW -> stringResource(R.string.rootop_risk_low) to colors.primaryContainer
-        RiskLevel.HIGH -> stringResource(R.string.rootop_risk_high) to colors.errorContainer
+        RiskLevel.INFO -> stringResource(R.string.rootop_risk_info) to colors.onSurfaceVariant
+        RiskLevel.LOW -> stringResource(R.string.rootop_risk_low) to colors.primary
+        RiskLevel.HIGH -> stringResource(R.string.rootop_risk_high) to colors.error
     }
-    WaexStatusChip(text = text, color = color)
+    Text(
+        text = text,
+        style = WaexTheme.typography.labelSm,
+        color = color,
+        fontWeight = FontWeight.Medium
+    )
 }
 
 @Composable
