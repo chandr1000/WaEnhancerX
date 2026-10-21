@@ -33,7 +33,6 @@ import com.waenhancer.ui.navigation.MainContainerScreen
 import com.waenhancer.ui.navigation.WaexNavController
 import com.waenhancer.update.UpdateCheckCoordinator
 import com.waenhancer.update.UpdateDownloader
-import com.waenhancer.root.RootGate
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -67,8 +66,7 @@ class MainActivity : ComponentActivity() {
     private var rootState by mutableStateOf(RootAccessState.Checking)
     private var hasGrantedRootThisSession by mutableStateOf(false)
     private var initialRootResultProvided = false
-    private var consentReviewed by mutableStateOf(false)
-    private var showConsentReviewFromRootScreen by mutableStateOf(false)
+    private var showPrivilegedOperations by mutableStateOf(false)
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -103,10 +101,6 @@ class MainActivity : ComponentActivity() {
             hasGrantedRootThisSession = initialRootResult
             rootState = if (hasGrantedRootThisSession) RootAccessState.Granted else RootAccessState.Required
         }
-        // Read the consent-reviewed flag synchronously so the consent screen does
-        // not flash on every cold launch for users who already reviewed and granted.
-        // The read is a fast SharedPreferences getBoolean.
-        consentReviewed = RootGate.isConsentReviewed(this)
         enableEdgeToEdge()
         setContent {
             val initialTheme = remember { preferenceManager.getString("app_theme_mode", "System") }
@@ -153,10 +147,7 @@ class MainActivity : ComponentActivity() {
                             controller
                         }
 
-                        // Consent onboarding: consentReviewed is seeded synchronously
-                        // in onCreate (no flash), and the su probe is gated on it.
-                        LaunchedEffect(rootCheckAttempt, consentReviewed) {
-                            if (!consentReviewed) return@LaunchedEffect
+                        LaunchedEffect(rootCheckAttempt) {
                             if (initialRootResultProvided && rootCheckAttempt == 0) return@LaunchedEffect
                             rootState = RootAccessState.AwaitingGrant
                             val hasRoot = withContext(Dispatchers.IO) {
@@ -184,27 +175,18 @@ class MainActivity : ComponentActivity() {
                                 LocalWaexNavController provides navController,
                                 LocalWaexPreferenceManager provides preferenceManager
                             ) {
-                                if (hasGrantedRootThisSession) {
+                                if (hasGrantedRootThisSession && !showPrivilegedOperations) {
                                     MainContainerScreen()
+                                } else if (showPrivilegedOperations) {
+                                    com.waenhancer.ui.screens.root.PrivilegedOperationsScreen()
                                 }
                             }
-                            if (!consentReviewed || showConsentReviewFromRootScreen) {
-                                RootConsentReviewScreen(
-                                    onContinue = {
-                                        RootGate.markConsentReviewed(this@MainActivity)
-                                        consentReviewed = true
-                                        if (showConsentReviewFromRootScreen) {
-                                            showConsentReviewFromRootScreen = false
-                                            rootCheckAttempt++
-                                        }
-                                    }
-                                )
-                            } else if (rootState != RootAccessState.Granted) {
+                            if (!hasGrantedRootThisSession && !showPrivilegedOperations) {
                                 RootAccessRequirementScreen(
                                     state = rootState,
                                     onRetry = { rootCheckAttempt++ },
                                     onExit = { finishAndRemoveTask() },
-                                    onReviewCapabilities = { showConsentReviewFromRootScreen = true }
+                                    onReviewCapabilities = { showPrivilegedOperations = true }
                                 )
                             }
                         }

@@ -1,7 +1,6 @@
 package com.waenhancer.app
 
 import com.waenhancer.app.R
-import com.waenhancer.root.RootGate
 import com.waenhancer.utils.UiText
 
 import android.Manifest
@@ -129,18 +128,17 @@ class PermissionsActivity : ComponentActivity() {
         }
     }
 
-    private enum class UiState { CONSENT_REVIEW, PROBING, PERMISSIONS }
+    private enum class UiState { PROBING, PERMISSIONS }
 
-    private var uiState by mutableStateOf(UiState.CONSENT_REVIEW)
+    private var uiState by mutableStateOf(UiState.PROBING)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val startupSplash = installSplashScreen()
         super.onCreate(savedInstanceState)
-        startupSplash.setKeepOnScreenCondition { !rootCheckComplete && uiState != UiState.CONSENT_REVIEW }
+        startupSplash.setKeepOnScreenCondition { !rootCheckComplete }
         enableEdgeToEdge()
 
-        uiState = if (RootGate.isConsentReviewed(this)) UiState.PROBING else UiState.CONSENT_REVIEW
-        if (uiState == UiState.PROBING) startRootProbe()
+        startRootProbe()
 
         setContent {
             val themeMode = preferenceManager.getString("app_theme_mode", "System")
@@ -162,14 +160,7 @@ class PermissionsActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     when (uiState) {
-                        UiState.CONSENT_REVIEW -> RootConsentReviewScreen(onContinue = {
-                            RootGate.markConsentReviewed(this@PermissionsActivity)
-                            uiState = UiState.PROBING
-                            startRootProbe()
-                        })
                         UiState.PROBING -> {
-                            // Splash screen handles the probing visual; this is a placeholder
-                            // that will be replaced when rootCheckComplete flips.
                             androidx.compose.foundation.layout.Box(
                                 modifier = Modifier.fillMaxSize()
                             ) {}
