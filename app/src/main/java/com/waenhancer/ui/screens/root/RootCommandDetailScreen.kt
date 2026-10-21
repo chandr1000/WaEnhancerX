@@ -152,16 +152,17 @@ private fun fallbackDescriptionFor(spec: RootCommandSpec): String {
 @Composable
 private fun parameterRulesFor(spec: RootCommandSpec): String {
     if (spec.params.isEmpty()) return stringResource(R.string.rootop_detail_no_params)
+    // Resolve all strings before the joinToString lambda (which is not @Composable).
+    val kindDescs = mapOf(
+        ParamKind.PACKAGE_NAME to stringResource(R.string.rootop_detail_param_package),
+        ParamKind.PATH_STRICT to stringResource(R.string.rootop_detail_param_path_strict),
+        ParamKind.BASE64_TEXT to stringResource(R.string.rootop_detail_param_base64),
+        ParamKind.FILE_PATH to stringResource(R.string.rootop_detail_param_file_path),
+        ParamKind.DERIVED_OUTPUT to stringResource(R.string.rootop_detail_param_derived),
+        ParamKind.CONSTANT to "baked into the template, not caller-supplied"
+    )
     return spec.params.joinToString("\n") { p ->
-        val kindDesc = when (p.kind) {
-            ParamKind.PACKAGE_NAME -> stringResource(R.string.rootop_detail_param_package)
-            ParamKind.PATH_STRICT -> stringResource(R.string.rootop_detail_param_path_strict)
-            ParamKind.BASE64_TEXT -> stringResource(R.string.rootop_detail_param_base64)
-            ParamKind.FILE_PATH -> stringResource(R.string.rootop_detail_param_file_path)
-            ParamKind.DERIVED_OUTPUT -> stringResource(R.string.rootop_detail_param_derived)
-            ParamKind.CONSTANT -> "baked into the template, not caller-supplied"
-        }
-        "${p.name}: $kindDesc"
+        "${p.name}: ${kindDescs[p.kind] ?: ""}"
     }
 }
 
