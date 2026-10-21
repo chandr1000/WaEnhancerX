@@ -1,6 +1,7 @@
 package com.waenhancer.app
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -10,8 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -27,22 +26,18 @@ import androidx.compose.ui.unit.dp
 import com.waenhancer.app.R
 import com.waenhancer.root.Category
 import com.waenhancer.root.RootCommandRegistry
-import com.waenhancer.root.RiskLevel
+import com.waenhancer.ui.components.WaexCard
+import com.waenhancer.ui.components.WaexPreferenceItem
 import com.waenhancer.ui.components.WaexSectionHeader
 import com.waenhancer.ui.designsystem.WaexTheme
 
-/**
- * Pre-flight consent review shown before the first `su` probe.
- * Discloses the registered-operation inventory, the 45-package scope, the
- * `pm install` usage, and the find-sweep reach in plain language, then
- * hands off to the actual superuser request.
- */
 @Composable
 fun RootConsentReviewScreen(onContinue: () -> Unit) {
-    BackHandler { /* swallowing back: do nothing */ }
+    BackHandler { }
     val colors = WaexTheme.colors
     val typography = WaexTheme.typography
     val spacing = WaexTheme.spacing
+    val radius = WaexTheme.radius
     val specs = RootCommandRegistry.all().filter { it.id != "debug.echo" }
     val categories = specs.groupBy { it.category }
     val count = specs.size
@@ -50,6 +45,7 @@ fun RootConsentReviewScreen(onContinue: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(colors.background)
             .statusBarsPadding()
             .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
@@ -63,64 +59,59 @@ fun RootConsentReviewScreen(onContinue: () -> Unit) {
             color = colors.onBackground,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(spacing.stackLg))
         Text(
             text = stringResource(R.string.rootop_consent_body, count),
             style = typography.bodyMd,
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(spacing.stackLg))
 
         categories.forEach { (category, categorySpecs) ->
-            WaexSectionHeader(
-                title = categoryTitleLocalized(category),
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-            categorySpecs.forEach { spec ->
-                Text(
-                    text = if (spec.titleRes != 0) stringResource(spec.titleRes) else spec.id,
-                    style = typography.bodyMd,
-                    color = colors.onSurface,
-                    modifier = Modifier.padding(vertical = 2.dp)
-                )
-                if (spec.descriptionRes != 0) {
-                    Text(
-                        text = stringResource(spec.descriptionRes),
-                        style = typography.bodySm,
-                        color = colors.onSurfaceVariant
-                    )
+            WaexSectionHeader(title = categoryTitleLocalized(category))
+            Spacer(modifier = Modifier.height(spacing.stackSm))
+            WaexCard {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    categorySpecs.forEachIndexed { index, spec ->
+                        WaexPreferenceItem(
+                            title = if (spec.titleRes != 0) stringResource(spec.titleRes) else spec.id,
+                            description = if (spec.descriptionRes != 0) stringResource(spec.descriptionRes) else null,
+                            showDivider = index < categorySpecs.lastIndex
+                        )
+                    }
                 }
+            }
+            Spacer(modifier = Modifier.height(spacing.stackLg))
+        }
+
+        WaexCard {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                WaexPreferenceItem(
+                    title = stringResource(R.string.rootop_consent_scope_title),
+                    description = stringResource(R.string.rootop_consent_scope_restart),
+                    showDivider = true
+                )
+                WaexPreferenceItem(
+                    title = "",
+                    description = stringResource(R.string.rootop_consent_scope_install),
+                    showDivider = true
+                )
+                WaexPreferenceItem(
+                    title = "",
+                    description = stringResource(R.string.rootop_consent_scope_find),
+                    showDivider = false
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        WaexSectionHeader(
-            title = stringResource(R.string.rootop_consent_scope_title),
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-        Text(
-            text = "• " + stringResource(R.string.rootop_consent_scope_restart),
-            style = typography.bodySm,
-            color = colors.onSurfaceVariant
-        )
-        Text(
-            text = "• " + stringResource(R.string.rootop_consent_scope_install),
-            style = typography.bodySm,
-            color = colors.onSurfaceVariant
-        )
-        Text(
-            text = "• " + stringResource(R.string.rootop_consent_scope_find),
-            style = typography.bodySm,
-            color = colors.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(spacing.stackLg))
         Button(
             onClick = onContinue,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(54.dp),
+                .height(42.dp),
+            shape = radius.buttonShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = colors.primary,
                 contentColor = colors.onPrimary
@@ -128,14 +119,13 @@ fun RootConsentReviewScreen(onContinue: () -> Unit) {
         ) {
             Text(
                 text = stringResource(R.string.rootop_consent_continue),
-                style = typography.bodyLg,
                 fontWeight = FontWeight.Bold
             )
         }
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(spacing.stackMd))
         Text(
             text = stringResource(R.string.rootop_consent_boundary),
-            style = typography.bodySm,
+            style = typography.labelSm,
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center
         )

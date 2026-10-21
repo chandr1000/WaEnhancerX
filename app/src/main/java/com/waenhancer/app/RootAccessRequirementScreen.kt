@@ -199,14 +199,8 @@ fun RootAccessRequirementScreen(
                 shape = radius.lgShape,
                 border = BorderStroke(1.dp, colors.outlineVariant)
             ) {
-                Icon(
-                    imageVector = WaexIcons.Security,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
                 Text(
                     text = UiText.get(R.string.rootop_consent_title, "Review what WAEX can do with root"),
-                    modifier = Modifier.padding(start = 8.dp),
                     style = typography.bodyMd,
                     color = colors.onSurface
                 )

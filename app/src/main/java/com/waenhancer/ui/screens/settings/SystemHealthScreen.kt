@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -251,7 +252,6 @@ private fun PrivilegedOperationsEntryCard(nav: com.waenhancer.ui.navigation.Waex
     val typography = WaexTheme.typography
     val radius = WaexTheme.radius
     val total = remember { RootCommandRegistry.all().size }
-    // Read toggle state reactively so the count recomposes when toggles change.
     val disabled = RootCommandRegistry.all().count { it.toggleable && !RootGate.isEnabledState(it.id) }
     Surface(
         shape = radius.bentoCardShape,
@@ -263,15 +263,14 @@ private fun PrivilegedOperationsEntryCard(nav: com.waenhancer.ui.navigation.Waex
     ) {
         Column(Modifier.padding(20.dp)) {
             Text(
-                UiText.get(R.string.rootop_screen_title, "Privileged Operations"),
+                text = stringResource(R.string.rootop_screen_title),
                 style = typography.bodyLg,
                 fontWeight = FontWeight.Bold,
                 color = colors.primary
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                UiText.get(R.string.rootop_entry_card_summary,
-                    "%1\$d registered · %2\$d disabled by you", total, disabled),
+                text = stringResource(R.string.rootop_entry_card_summary, total, disabled),
                 style = typography.bodyMd,
                 color = colors.onSurfaceVariant
             )
