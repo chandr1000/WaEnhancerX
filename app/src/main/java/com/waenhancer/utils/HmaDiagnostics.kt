@@ -342,11 +342,11 @@ object HmaDiagnostics {
         val preFlight = RootFlowConsent.preFlight(chain)
         if (!preFlight.allowed) return@withContext false
 
-        // Force-stop HMA and any related processes BEFORE reading/modifying configuration
-        forceStopHmaApps(context)
-
         val configPaths = findAllHmaConfigPaths()
         if (configPaths.isEmpty()) return@withContext false
+
+        // Force-stop HMA only after confirming configs exist to repair.
+        forceStopHmaApps(context)
 
         val moduleSignatures = setOf(
             context.packageName,
