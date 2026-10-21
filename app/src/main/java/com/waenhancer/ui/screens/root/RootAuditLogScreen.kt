@@ -3,7 +3,6 @@ package com.waenhancer.ui.screens.root
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,9 +27,10 @@ import com.waenhancer.root.FailureKind
 import com.waenhancer.root.RootAuditLog
 import com.waenhancer.root.RootGate
 import com.waenhancer.root.RootResult
-import com.waenhancer.ui.components.StitchSwitch
+import com.waenhancer.ui.components.WaexCard
 import com.waenhancer.ui.components.WaexEmptyState
 import com.waenhancer.ui.components.WaexSectionHeader
+import com.waenhancer.ui.components.WaexSwitchPreference
 import com.waenhancer.ui.components.WaexTopBar
 import com.waenhancer.ui.designsystem.WaexIcons
 import com.waenhancer.ui.designsystem.WaexTheme
@@ -42,8 +43,9 @@ import java.util.Locale
 fun RootAuditLogScreen() {
     val nav = LocalWaexNavController.current
     val context = LocalContext.current
+    val colors = WaexTheme.colors
+    val spacing = WaexTheme.spacing
     val entries by RootAuditLog.entries.collectAsState()
-    // Read the Compose-observable state directly so the switch recomposes on toggle.
     val auditEnabled = RootGate.auditLogEnabled.value
 
     Scaffold(
@@ -52,81 +54,83 @@ fun RootAuditLogScreen() {
                 title = stringResource(R.string.rootop_log_title),
                 onBackClick = { nav.popBack() }
             )
-        }
+        },
+        containerColor = colors.background
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(horizontal = spacing.pageMargin)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.rootop_log_cleared_on_exit),
-                        style = WaexTheme.typography.bodySm,
-                        color = WaexTheme.colors.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(R.string.rootop_log_toggle_desc),
-                        style = WaexTheme.typography.bodySm,
-                        color = WaexTheme.colors.onSurfaceVariant
+            WaexCard {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    WaexSwitchPreference(
+                        title = stringResource(R.string.rootop_log_title),
+                        checked = auditEnabled,
+                        onCheckedChange = { value ->
+                            RootGate.setAuditLogEnabled(context, value)
+                        },
+                        description = stringResource(R.string.rootop_log_toggle_desc),
+                        showDivider = false
                     )
                 }
-                StitchSwitch(
-                    checked = auditEnabled,
-                    onCheckedChange = { value ->
-                        RootGate.setAuditLogEnabled(context, value)
-                    }
-                )
             }
+            Spacer(modifier = Modifier.height(spacing.stackSm))
+            Text(
+                text = stringResource(R.string.rootop_log_cleared_on_exit),
+                style = WaexTheme.typography.labelSm,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = spacing.gutter)
+            )
             if (entries.isEmpty()) {
                 WaexEmptyState(
                     title = stringResource(R.string.rootop_log_empty),
                     description = stringResource(R.string.rootop_log_cleared_on_exit),
-                    icon = WaexIcons.Security,
-                    modifier = Modifier.padding(16.dp)
+                    icon = WaexIcons.Security
                 )
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(spacing.stackMd),
+                    contentPadding = PaddingValues(vertical = spacing.stackSm)
                 ) {
                     items(entries.asReversed(), key = { "${it.epochMs}_${it.commandId}_${it.callerTag}" }) { entry ->
-                        val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-                            .format(Date(entry.epochMs))
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "$time · ${entry.commandId}",
-                                style = WaexTheme.typography.bodyMd,
-                                color = WaexTheme.colors.onSurface,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = outcomeLabel(entry.outcome) + " · ${entry.callerTag} · ${entry.durationMs}ms",
-                                style = WaexTheme.typography.bodySm,
-                                color = WaexTheme.colors.onSurfaceVariant
-                            )
-                            entry.outputPreview?.let { preview ->
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = stringResource(R.string.rootop_log_output_preview) + ": " + preview,
-                                    style = WaexTheme.typography.bodySm,
-                                    color = WaexTheme.colors.onSurfaceVariant
-                                )
-                            }
-                        }
+                        AuditLogEntryCard(entry)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AuditLogEntryCard(entry: RootAuditLog.Entry) {
+    val colors = WaexTheme.colors
+    val spacing = WaexTheme.spacing
+    val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(entry.epochMs))
+    val outcomeText = outcomeLabel(entry.outcome)
+
+    WaexCard {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "$time · ${entry.commandId}",
+                style = WaexTheme.typography.bodyLg,
+                color = colors.onSurface,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = "$outcomeText · ${entry.callerTag} · ${entry.durationMs}ms",
+                style = WaexTheme.typography.bodyMd,
+                color = colors.onSurfaceVariant
+            )
+            entry.outputPreview?.let { preview ->
+                Spacer(modifier = Modifier.height(spacing.stackSm))
+                Text(
+                    text = stringResource(R.string.rootop_log_output_preview) + ": " + preview,
+                    style = WaexTheme.typography.labelSm,
+                    color = colors.onSurfaceVariant
+                )
             }
         }
     }

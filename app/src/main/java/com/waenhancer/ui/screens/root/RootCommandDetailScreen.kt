@@ -1,33 +1,36 @@
 package com.waenhancer.ui.screens.root
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.waenhancer.app.R
 import com.waenhancer.root.Category
+import com.waenhancer.root.ParamKind
 import com.waenhancer.root.RiskLevel
 import com.waenhancer.root.RootCommandRegistry
 import com.waenhancer.root.RootCommandSpec
+import com.waenhancer.ui.components.WaexEmptyState
 import com.waenhancer.ui.components.WaexSectionHeader
 import com.waenhancer.ui.components.WaexTopBar
+import com.waenhancer.ui.designsystem.WaexIcons
 import com.waenhancer.ui.designsystem.WaexTheme
 import com.waenhancer.ui.navigation.LocalWaexNavController
 
 @Composable
 fun RootCommandDetailScreen(commandId: String) {
     val nav = LocalWaexNavController.current
+    val colors = WaexTheme.colors
+    val spacing = WaexTheme.spacing
     val spec = RootCommandRegistry.spec(commandId)
     if (spec == null) {
         Scaffold(
@@ -36,12 +39,13 @@ fun RootCommandDetailScreen(commandId: String) {
                     title = commandId,
                     onBackClick = { nav.popBack() }
                 )
-            }
+            },
+            containerColor = colors.background
         ) { padding ->
-            com.waenhancer.ui.components.WaexEmptyState(
+            WaexEmptyState(
                 title = "This operation is no longer registered",
                 description = "The command \"$commandId\" is not in the current registry.",
-                icon = com.waenhancer.ui.designsystem.WaexIcons.Warning,
+                icon = WaexIcons.Warning,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
@@ -55,65 +59,54 @@ fun RootCommandDetailScreen(commandId: String) {
                 title = if (spec.titleRes != 0) stringResource(spec.titleRes) else spec.id,
                 onBackClick = { nav.popBack() }
             )
-        }
+        },
+        containerColor = colors.background
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(horizontal = spacing.pageMargin, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(spacing.stackLg)
         ) {
             if (spec.descriptionRes != 0) {
                 Text(
                     text = stringResource(spec.descriptionRes),
-                    style = WaexTheme.typography.bodyLg,
-                    color = WaexTheme.colors.onSurface
+                    style = WaexTheme.typography.bodyMd,
+                    color = colors.onSurface
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
             DetailMetaRow(spec)
 
             if (spec.detailRes != 0) {
-                WaexSectionHeader(
-                    title = stringResource(R.string.rootop_detail_when_it_runs),
-                    modifier = Modifier.padding(top = 24.dp)
-                )
+                WaexSectionHeader(title = stringResource(R.string.rootop_detail_when_it_runs))
                 Text(
                     text = stringResource(spec.detailRes),
                     style = WaexTheme.typography.bodyMd,
-                    color = WaexTheme.colors.onSurfaceVariant
+                    color = colors.onSurfaceVariant
                 )
             }
 
-            WaexSectionHeader(
-                title = stringResource(R.string.rootop_detail_when_off),
-                modifier = Modifier.padding(top = 24.dp)
-            )
+            WaexSectionHeader(title = stringResource(R.string.rootop_detail_when_off))
             Text(
                 text = fallbackDescriptionFor(spec),
                 style = WaexTheme.typography.bodyMd,
-                color = WaexTheme.colors.onSurfaceVariant
+                color = colors.onSurfaceVariant
             )
 
-            WaexSectionHeader(
-                title = stringResource(R.string.rootop_detail_parameters),
-                modifier = Modifier.padding(top = 24.dp)
-            )
+            WaexSectionHeader(title = stringResource(R.string.rootop_detail_parameters))
             Text(
                 text = parameterRulesFor(spec),
                 style = WaexTheme.typography.bodyMd,
-                color = WaexTheme.colors.onSurfaceVariant
+                color = colors.onSurfaceVariant
             )
 
-            WaexSectionHeader(
-                title = stringResource(R.string.rootop_detail_command),
-                modifier = Modifier.padding(top = 24.dp)
-            )
+            WaexSectionHeader(title = stringResource(R.string.rootop_detail_command))
             Text(
                 text = renderTemplateLiteral(spec),
-                style = WaexTheme.typography.bodySm,
-                color = WaexTheme.colors.onSurfaceVariant
+                style = WaexTheme.typography.labelSm,
+                color = colors.onSurfaceVariant
             )
         }
     }
@@ -139,7 +132,7 @@ private fun DetailMetaRow(spec: RootCommandSpec) {
     }
     Text(
         text = "$category · $risk · $timeoutText",
-        style = WaexTheme.typography.bodySm,
+        style = WaexTheme.typography.labelSm,
         color = WaexTheme.colors.onSurfaceVariant,
         fontWeight = FontWeight.Medium
     )
@@ -161,17 +154,12 @@ private fun parameterRulesFor(spec: RootCommandSpec): String {
     if (spec.params.isEmpty()) return stringResource(R.string.rootop_detail_no_params)
     return spec.params.joinToString("\n") { p ->
         val kindDesc = when (p.kind) {
-            com.waenhancer.root.ParamKind.PACKAGE_NAME ->
-                stringResource(R.string.rootop_detail_param_package)
-            com.waenhancer.root.ParamKind.PATH_STRICT ->
-                stringResource(R.string.rootop_detail_param_path_strict)
-            com.waenhancer.root.ParamKind.BASE64_TEXT ->
-                stringResource(R.string.rootop_detail_param_base64)
-            com.waenhancer.root.ParamKind.FILE_PATH ->
-                stringResource(R.string.rootop_detail_param_file_path)
-            com.waenhancer.root.ParamKind.DERIVED_OUTPUT ->
-                stringResource(R.string.rootop_detail_param_derived)
-            com.waenhancer.root.ParamKind.CONSTANT -> "baked into the template, not caller-supplied"
+            ParamKind.PACKAGE_NAME -> stringResource(R.string.rootop_detail_param_package)
+            ParamKind.PATH_STRICT -> stringResource(R.string.rootop_detail_param_path_strict)
+            ParamKind.BASE64_TEXT -> stringResource(R.string.rootop_detail_param_base64)
+            ParamKind.FILE_PATH -> stringResource(R.string.rootop_detail_param_file_path)
+            ParamKind.DERIVED_OUTPUT -> stringResource(R.string.rootop_detail_param_derived)
+            ParamKind.CONSTANT -> "baked into the template, not caller-supplied"
         }
         "${p.name}: $kindDesc"
     }
@@ -180,12 +168,12 @@ private fun parameterRulesFor(spec: RootCommandSpec): String {
 private fun renderTemplateLiteral(spec: RootCommandSpec): String {
     val sampleParams = spec.params.associate { p ->
         p.name to when (p.kind) {
-            com.waenhancer.root.ParamKind.PACKAGE_NAME -> "<package>"
-            com.waenhancer.root.ParamKind.PATH_STRICT -> "<path>"
-            com.waenhancer.root.ParamKind.BASE64_TEXT -> "<base64>"
-            com.waenhancer.root.ParamKind.FILE_PATH -> "<file>"
-            com.waenhancer.root.ParamKind.DERIVED_OUTPUT -> "<derived>"
-            com.waenhancer.root.ParamKind.CONSTANT -> ""
+            ParamKind.PACKAGE_NAME -> "<package>"
+            ParamKind.PATH_STRICT -> "<path>"
+            ParamKind.BASE64_TEXT -> "<base64>"
+            ParamKind.FILE_PATH -> "<file>"
+            ParamKind.DERIVED_OUTPUT -> "<derived>"
+            ParamKind.CONSTANT -> ""
         }
     }
     return try {
