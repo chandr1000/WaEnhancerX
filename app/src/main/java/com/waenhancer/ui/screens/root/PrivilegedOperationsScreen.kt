@@ -104,6 +104,34 @@ fun PrivilegedOperationsScreen() {
                     color = colors.onSurfaceVariant
                 )
             }
+            item {
+                WaexCard {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        WaexPreferenceItem(
+                            title = stringResource(R.string.rootop_consent_scope_title),
+                            description = stringResource(R.string.rootop_consent_scope_restart),
+                            showDivider = true
+                        )
+                        WaexPreferenceItem(
+                            title = "",
+                            description = stringResource(R.string.rootop_consent_scope_install),
+                            showDivider = true
+                        )
+                        WaexPreferenceItem(
+                            title = "",
+                            description = stringResource(R.string.rootop_consent_scope_find),
+                            showDivider = false
+                        )
+                    }
+                }
+            }
+            item {
+                Text(
+                    text = stringResource(R.string.rootop_consent_boundary),
+                    style = WaexTheme.typography.labelSm,
+                    color = colors.onSurfaceVariant
+                )
+            }
             for ((category, categorySpecs) in categories) {
                 item(key = "header_${category.name}") {
                     WaexSectionHeader(title = categoryTitle(category))

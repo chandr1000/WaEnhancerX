@@ -28,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -191,18 +192,19 @@ fun RootAccessRequirementScreen(
 
         if (onReviewCapabilities != null) {
             Spacer(modifier = Modifier.height(10.dp))
-            OutlinedButton(
-                onClick = onReviewCapabilities,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = radius.lgShape,
-                border = BorderStroke(1.dp, colors.outlineVariant)
+            TextButton(
+                onClick = onReviewCapabilities
             ) {
                 Text(
-                    text = UiText.get(R.string.rootop_consent_title, "Review what WAEX can do with root"),
+                    text = UiText.get(R.string.rootop_screen_title, "Privileged Operations"),
                     style = typography.bodyMd,
-                    color = colors.onSurface
+                    color = colors.primary
+                )
+                Icon(
+                    imageVector = WaexIcons.ChevronRight,
+                    contentDescription = null,
+                    tint = colors.primary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
